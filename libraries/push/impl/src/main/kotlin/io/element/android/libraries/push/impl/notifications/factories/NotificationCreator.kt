@@ -239,7 +239,7 @@ class DefaultNotificationCreator(
                 // 'importance' which is set in the NotificationChannel. The integers representing
                 // 'priority' are different from 'importance', so make sure you don't mix them.
                 if (roomInfo.shouldBing) {
-                    priority = NotificationCompat.PRIORITY_DEFAULT
+                    priority = NotificationCompat.PRIORITY_HIGH
                     setLights(notificationAccountParams.color, 500, 500)
                 } else {
                     priority = NotificationCompat.PRIORITY_LOW
@@ -281,7 +281,7 @@ class DefaultNotificationCreator(
             .apply {
                 if (inviteNotifiableEvent.noisy) {
                     // Compat
-                    priority = NotificationCompat.PRIORITY_DEFAULT
+                    priority = NotificationCompat.PRIORITY_HIGH
                     setLights(notificationAccountParams.color, 500, 500)
                 } else {
                     priority = NotificationCompat.PRIORITY_LOW
@@ -323,7 +323,7 @@ class DefaultNotificationCreator(
             .apply {
                 if (simpleNotifiableEvent.noisy) {
                     // Compat
-                    priority = NotificationCompat.PRIORITY_DEFAULT
+                    priority = NotificationCompat.PRIORITY_HIGH
                     setLights(notificationAccountParams.color, 500, 500)
                 } else {
                     priority = NotificationCompat.PRIORITY_LOW
@@ -392,7 +392,7 @@ class DefaultNotificationCreator(
             .apply {
                 if (noisy) {
                     // Compat
-                    priority = NotificationCompat.PRIORITY_DEFAULT
+                    priority = NotificationCompat.PRIORITY_HIGH
                     setLights(notificationAccountParams.color, 500, 500)
                 } else {
                     // compat

@@ -46,6 +46,13 @@ data class NotificationSettingsState(
      * Whether to show all activity indicators in the room list, using unread messages instead of notifications.
      */
     val showAllActivityInRoomList: Boolean,
+    val ntfyServerUrl: String?,
+    val ntfyUsername: String?,
+    val ntfyPassword: String?,
+    val showNtfySettingsDialog: Boolean,
+    val isIgnoringBatteryOptimizations: Boolean,
+    val isAccessibilityKeepAliveEnabled: Boolean,
+    val showAccessibilityKeepAliveDialog: Boolean,
     val eventSink: (NotificationSettingsEvent) -> Unit,
 ) {
     sealed interface MatrixSettings {
@@ -80,7 +87,8 @@ data class NotificationSettingsState(
 
     /**
      * Whether the advanced settings should be shown.
-     * This is true if the current push distributor is in a failure state or if there are multiple push distributors available.
+     * This is true if the current push distributor is in a failure state, if there are multiple push distributors available,
+     * or if embedded ntfy push provider is available.
      */
-    val showAdvancedSettings: Boolean = currentPushDistributor.isFailure() || availablePushDistributors.size > 1
+    val showAdvancedSettings: Boolean = currentPushDistributor.isFailure() || availablePushDistributors.size > 1 || ntfyServerUrl != null
 }

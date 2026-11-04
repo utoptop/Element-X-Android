@@ -10,6 +10,7 @@ package io.element.android.libraries.push.impl.battery
 
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
+import io.element.android.libraries.push.api.battery.BatteryOptimization
 import io.element.android.libraries.push.api.battery.BatteryOptimizationEvent
 import io.element.android.libraries.push.impl.push.FakeMutableBatteryOptimizationStore
 import io.element.android.libraries.push.impl.push.MutableBatteryOptimizationStore

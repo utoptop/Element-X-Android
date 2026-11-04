@@ -155,6 +155,17 @@ open class NotificationSettingsStatePreviewParam : PreviewParameterProvider<Noti
                 aNotificationSettingsState(
                     currentPushDistributor = AsyncData.Failure(Exception("Failed to get distributor")),
                 ),
+                // Ntfy configured
+                aNotificationSettingsState(
+                    ntfyServerUrl = "https://ntfy.sh",
+                    ntfyUsername = "alice",
+                ),
+                // Ntfy dialog open
+                aNotificationSettingsState(
+                    ntfyServerUrl = "https://ntfy.example.com",
+                    ntfyUsername = "bob",
+                    showNtfySettingsDialog = true,
+                ),
             ),
         ).flatten()
 }
@@ -176,6 +187,13 @@ fun aNotificationSettingsState(
     pendingMessageSoundPickerLaunch: Int = 0,
     pendingCallRingtonePickerLaunch: Int = 0,
     showAllActivityInRoomList: Boolean = false,
+    ntfyServerUrl: String? = null,
+    ntfyUsername: String? = null,
+    ntfyPassword: String? = null,
+    showNtfySettingsDialog: Boolean = false,
+    isIgnoringBatteryOptimizations: Boolean = true,
+    isAccessibilityKeepAliveEnabled: Boolean = false,
+    showAccessibilityKeepAliveDialog: Boolean = false,
     eventSink: (NotificationSettingsEvent) -> Unit = {},
 ) = NotificationSettingsState(
     matrixSettings = matrixSettings,
@@ -192,6 +210,13 @@ fun aNotificationSettingsState(
     pendingMessageSoundPickerLaunch = pendingMessageSoundPickerLaunch,
     pendingCallRingtonePickerLaunch = pendingCallRingtonePickerLaunch,
     showAllActivityInRoomList = showAllActivityInRoomList,
+    ntfyServerUrl = ntfyServerUrl,
+    ntfyUsername = ntfyUsername,
+    ntfyPassword = ntfyPassword,
+    showNtfySettingsDialog = showNtfySettingsDialog,
+    isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizations,
+    isAccessibilityKeepAliveEnabled = isAccessibilityKeepAliveEnabled,
+    showAccessibilityKeepAliveDialog = showAccessibilityKeepAliveDialog,
     eventSink = eventSink,
 )
 

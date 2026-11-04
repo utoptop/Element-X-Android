@@ -15,11 +15,19 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -27,6 +35,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -39,7 +51,9 @@ import io.element.android.libraries.architecture.coverage.ExcludeFromCoverage
 import io.element.android.libraries.designsystem.components.Announcement
 import io.element.android.libraries.designsystem.components.AnnouncementType
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
+import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
 import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
+import io.element.android.libraries.designsystem.components.dialogs.ListDialog
 import io.element.android.libraries.designsystem.components.dialogs.ListOption
 import io.element.android.libraries.designsystem.components.dialogs.SingleSelectionDialog
 import io.element.android.libraries.designsystem.components.list.ListItemContent
@@ -54,7 +68,10 @@ import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.ListItem
+import io.element.android.libraries.designsystem.theme.components.PasswordVisibilityToggle
 import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.theme.components.TextField
+import io.element.android.libraries.designsystem.theme.components.TextFieldValidity
 import io.element.android.libraries.designsystem.utils.OnLifecycleEvent
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsEvent
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
@@ -326,6 +343,57 @@ private fun AdvancedSettingsCategory(
                 }
             }
         )
+        if (state.ntfyServerUrl != null) {
+            ListItem(
+                content = {
+                    Text(text = stringResource(id = R.string.screen_advanced_settings_ntfy_title))
+                },
+                supportingContent = {
+                    val server = state.ntfyServerUrl.ifEmpty { "https://ntfy.sh" }
+                    val summary = if (state.ntfyUsername.isNullOrBlank()) {
+                        server
+                    } else {
+                        "${state.ntfyUsername}@$server"
+                    }
+                    Text(text = summary)
+                },
+                onClick = {
+                    state.eventSink(NotificationSettingsEvent.ShowNtfySettingsDialog)
+                }
+            )
+        }
+        ListItem(
+            content = {
+                Text(text = stringResource(id = R.string.screen_advanced_settings_battery_optimization_title))
+            },
+            supportingContent = {
+                val summary = if (state.isIgnoringBatteryOptimizations) {
+                    stringResource(id = R.string.screen_advanced_settings_battery_optimization_unrestricted)
+                } else {
+                    stringResource(id = R.string.screen_advanced_settings_battery_optimization_restricted)
+                }
+                Text(text = summary)
+            },
+            onClick = {
+                state.eventSink(NotificationSettingsEvent.RequestIgnoreBatteryOptimizations)
+            }
+        )
+        ListItem(
+            content = {
+                Text(text = stringResource(id = R.string.screen_advanced_settings_accessibility_keepalive_title))
+            },
+            supportingContent = {
+                val summary = if (state.isAccessibilityKeepAliveEnabled) {
+                    stringResource(id = R.string.screen_advanced_settings_accessibility_keepalive_enabled)
+                } else {
+                    stringResource(id = R.string.screen_advanced_settings_accessibility_keepalive_disabled)
+                }
+                Text(text = summary)
+            },
+            onClick = {
+                state.eventSink(NotificationSettingsEvent.ShowAccessibilityKeepAliveDialog)
+            }
+        )
     }
     if (state.showChangePushProviderDialog) {
         SingleSelectionDialog(
@@ -347,6 +415,129 @@ private fun AdvancedSettingsCategory(
             },
             onDismissRequest = { state.eventSink(NotificationSettingsEvent.CancelChangePushProvider) },
         )
+    }
+    if (state.showNtfySettingsDialog) {
+        NtfySettingsDialog(
+            currentServerUrl = state.ntfyServerUrl.orEmpty().ifEmpty { "https://ntfy.sh" },
+            currentUsername = state.ntfyUsername.orEmpty(),
+            currentPassword = state.ntfyPassword.orEmpty(),
+            onSave = { serverUrl, username, password ->
+                state.eventSink(
+                    NotificationSettingsEvent.SaveNtfySettings(
+                        serverUrl = serverUrl,
+                        username = username.ifBlank { null },
+                        password = password.ifBlank { null },
+                    )
+                )
+            },
+            onDismiss = {
+                state.eventSink(NotificationSettingsEvent.DismissNtfySettingsDialog)
+            }
+        )
+    }
+    if (state.showAccessibilityKeepAliveDialog) {
+        ConfirmationDialog(
+            title = stringResource(id = R.string.dialog_accessibility_keepalive_title),
+            content = stringResource(id = R.string.dialog_accessibility_keepalive_content),
+            submitText = stringResource(id = R.string.dialog_accessibility_keepalive_submit),
+            cancelText = stringResource(id = CommonStrings.action_cancel),
+            onSubmitClick = {
+                state.eventSink(NotificationSettingsEvent.OpenAccessibilitySettings)
+            },
+            onDismiss = {
+                state.eventSink(NotificationSettingsEvent.DismissAccessibilityKeepAliveDialog)
+            },
+        )
+    }
+}
+
+@Composable
+private fun NtfySettingsDialog(
+    currentServerUrl: String,
+    currentUsername: String,
+    currentPassword: String,
+    onSave: (serverUrl: String, username: String, password: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var serverUrl by rememberSaveable { mutableStateOf(currentServerUrl) }
+    var username by rememberSaveable { mutableStateOf(currentUsername) }
+    var password by rememberSaveable { mutableStateOf(currentPassword) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+    val isValidServerUrl = remember(serverUrl) {
+        val trimmed = serverUrl.trim()
+        trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)
+    }
+
+    ListDialog(
+        title = stringResource(id = R.string.screen_advanced_settings_ntfy_title),
+        subtitle = stringResource(id = R.string.screen_advanced_settings_ntfy_dialog_description),
+        onSubmit = {
+            onSave(serverUrl.trim(), username.trim(), password)
+        },
+        onDismissRequest = onDismiss,
+        enabled = isValidServerUrl,
+        submitText = stringResource(id = CommonStrings.action_save),
+        cancelText = stringResource(id = CommonStrings.action_cancel),
+    ) {
+        item {
+            TextField(
+                value = serverUrl,
+                onValueChange = { serverUrl = it },
+                label = stringResource(id = R.string.screen_advanced_settings_ntfy_server_url),
+                placeholder = stringResource(id = R.string.screen_advanced_settings_ntfy_server_url_hint),
+                validity = if (isValidServerUrl) TextFieldValidity.None else TextFieldValidity.Invalid,
+                supportingText = if (!isValidServerUrl) stringResource(id = R.string.screen_advanced_settings_ntfy_server_url_invalid) else null,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Next,
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            TextField(
+                value = username,
+                onValueChange = { username = it },
+                label = stringResource(id = R.string.screen_advanced_settings_ntfy_username),
+                placeholder = stringResource(id = R.string.screen_advanced_settings_ntfy_username),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next,
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            TextField(
+                value = password,
+                onValueChange = { password = it },
+                label = stringResource(id = R.string.screen_advanced_settings_ntfy_password),
+                placeholder = stringResource(id = R.string.screen_advanced_settings_ntfy_password),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    PasswordVisibilityToggle(
+                        visible = passwordVisible,
+                        onToggle = { passwordVisible = !passwordVisible },
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        if (isValidServerUrl) {
+                            onSave(serverUrl.trim(), username.trim(), password)
+                        }
+                    }
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

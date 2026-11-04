@@ -38,11 +38,13 @@ import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.push.api.PushService
+import io.element.android.libraries.push.api.battery.BatteryOptimization
 import io.element.android.libraries.push.api.notifications.NotificationSoundUpdater
 import io.element.android.libraries.push.api.notifications.SoundDisplayNameResolver
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier.CopyResult
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier.SoundSlot
+import io.element.android.libraries.pushproviders.api.ConfigurableServerPushProvider
 import io.element.android.libraries.pushproviders.api.Distributor
 import io.element.android.libraries.pushproviders.api.PushProvider
 import io.element.android.libraries.pushstore.api.UserPushStore
@@ -68,6 +70,8 @@ class NotificationSettingsPresenter(
     private val userPushStoreFactory: UserPushStoreFactory,
     private val matrixClient: MatrixClient,
     private val pushService: PushService,
+    private val configurablePushProvider: ConfigurableServerPushProvider,
+    private val batteryOptimization: BatteryOptimization,
     private val systemNotificationsEnabledProvider: SystemNotificationsEnabledProvider,
     private val fullScreenIntentPermissionsPresenter: Presenter<FullScreenIntentPermissionsState>,
     private val appPreferencesStore: AppPreferencesStore,
@@ -144,6 +148,25 @@ class NotificationSettingsPresenter(
         }
 
         var showChangePushProviderDialog by remember { mutableStateOf(false) }
+
+        val isIgnoringBatteryOptimizationsState = remember {
+            mutableStateOf(batteryOptimization.isIgnoringBatteryOptimizations())
+        }
+        val isAccessibilityKeepAliveEnabledState = remember {
+            mutableStateOf(batteryOptimization.isAccessibilityServiceEnabled())
+        }
+        val showAccessibilityKeepAliveDialogState = remember { mutableStateOf(false) }
+
+        val ntfyServerUrlState = remember {
+            mutableStateOf(configurablePushProvider.getServerUrl())
+        }
+        val ntfyUsernameState = remember {
+            mutableStateOf(configurablePushProvider.getUsername())
+        }
+        val ntfyPasswordState = remember {
+            mutableStateOf(configurablePushProvider.getPassword())
+        }
+        val showNtfySettingsDialogState = remember { mutableStateOf(false) }
 
         val messageSound by remember { appPreferencesStore.getMessageSoundFlow() }.collectAsState(initial = NotificationSound.SystemDefault)
         val callRingtone by remember { appPreferencesStore.getCallRingtoneFlow() }.collectAsState(initial = NotificationSound.SystemDefault)
@@ -228,7 +251,22 @@ class NotificationSettingsPresenter(
                 NotificationSettingsEvent.FixConfigurationMismatch -> localCoroutineScope.fixConfigurationMismatch(matrixSettings)
                 NotificationSettingsEvent.RefreshSystemNotificationsEnabled -> {
                     systemNotificationsEnabled.value = systemNotificationsEnabledProvider.notificationsEnabled()
+                    isIgnoringBatteryOptimizationsState.value = batteryOptimization.isIgnoringBatteryOptimizations()
+                    isAccessibilityKeepAliveEnabledState.value = batteryOptimization.isAccessibilityServiceEnabled()
                     refreshFullScreenIntentSettings++
+                }
+                NotificationSettingsEvent.RequestIgnoreBatteryOptimizations -> {
+                    batteryOptimization.requestDisablingBatteryOptimization()
+                }
+                NotificationSettingsEvent.ShowAccessibilityKeepAliveDialog -> {
+                    showAccessibilityKeepAliveDialogState.value = true
+                }
+                NotificationSettingsEvent.DismissAccessibilityKeepAliveDialog -> {
+                    showAccessibilityKeepAliveDialogState.value = false
+                }
+                NotificationSettingsEvent.OpenAccessibilitySettings -> {
+                    showAccessibilityKeepAliveDialogState.value = false
+                    batteryOptimization.openAccessibilitySettings()
                 }
                 NotificationSettingsEvent.ClearNotificationChangeError -> changeNotificationSettingAction.value = AsyncAction.Uninitialized
                 NotificationSettingsEvent.ChangePushProvider -> showChangePushProviderDialog = true
@@ -293,6 +331,38 @@ class NotificationSettingsPresenter(
                 is NotificationSettingsEvent.ToggleShowAllActivityInRoomList -> localCoroutineScope.launch {
                     featureFlagService.setFeatureEnabled(ShowAllActivityInRoomListFeature, event.newValue)
                 }
+                NotificationSettingsEvent.ShowNtfySettingsDialog -> {
+                    showNtfySettingsDialogState.value = true
+                }
+                NotificationSettingsEvent.DismissNtfySettingsDialog -> {
+                    showNtfySettingsDialogState.value = false
+                }
+                is NotificationSettingsEvent.SaveNtfySettings -> {
+                    showNtfySettingsDialogState.value = false
+                    localCoroutineScope.launch {
+                        val trimmedUrl = event.serverUrl.trim().trimEnd('/')
+                        val username = event.username?.trim()?.ifEmpty { null }
+                        val password = event.password?.ifEmpty { null }
+                        configurablePushProvider.setServerUrl(trimmedUrl)
+                        configurablePushProvider.setUsername(username)
+                        configurablePushProvider.setPassword(password)
+                        ntfyServerUrlState.value = configurablePushProvider.getServerUrl()
+                        ntfyUsernameState.value = configurablePushProvider.getUsername()
+                        ntfyPasswordState.value = configurablePushProvider.getPassword()
+
+                        // If currently using ntfy distributor, re-register pusher
+                        val currentDist = currentDistributor.dataOrNull()
+                        val ntfyProvider = pushService.getAvailablePushProviders().find { it.name == "ntfy" }
+                        if (currentDist != null && ntfyProvider != null && ntfyProvider.getDistributors().any { it.value == currentDist.value }) {
+                            pushService.registerWith(
+                                matrixClient = matrixClient,
+                                pushProvider = ntfyProvider,
+                                distributor = currentDist,
+                            )
+                        }
+                        refreshPushProvider++
+                    }
+                }
             }
         }
 
@@ -322,6 +392,13 @@ class NotificationSettingsPresenter(
             pendingMessageSoundPickerLaunch = pendingMessageSoundPickerLaunch,
             pendingCallRingtonePickerLaunch = pendingCallRingtonePickerLaunch,
             showAllActivityInRoomList = showAllActivityInRoomList,
+            ntfyServerUrl = ntfyServerUrlState.value,
+            ntfyUsername = ntfyUsernameState.value,
+            ntfyPassword = ntfyPasswordState.value,
+            showNtfySettingsDialog = showNtfySettingsDialogState.value,
+            isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizationsState.value,
+            isAccessibilityKeepAliveEnabled = isAccessibilityKeepAliveEnabledState.value,
+            showAccessibilityKeepAliveDialog = showAccessibilityKeepAliveDialogState.value,
             eventSink = ::handleEvent,
         )
     }

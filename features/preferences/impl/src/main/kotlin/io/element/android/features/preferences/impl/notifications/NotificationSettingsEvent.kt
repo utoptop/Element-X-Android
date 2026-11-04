@@ -35,4 +35,15 @@ sealed interface NotificationSettingsEvent {
     data class SelectCallRingtonePreset(val sound: NotificationSound) : NotificationSettingsEvent
     data object LaunchCallRingtonePicker : NotificationSettingsEvent
     data class ToggleShowAllActivityInRoomList(val newValue: Boolean) : NotificationSettingsEvent
+    data object ShowNtfySettingsDialog : NotificationSettingsEvent
+    data object DismissNtfySettingsDialog : NotificationSettingsEvent
+    data object RequestIgnoreBatteryOptimizations : NotificationSettingsEvent
+    data object ShowAccessibilityKeepAliveDialog : NotificationSettingsEvent
+    data object DismissAccessibilityKeepAliveDialog : NotificationSettingsEvent
+    data object OpenAccessibilitySettings : NotificationSettingsEvent
+    data class SaveNtfySettings(
+        val serverUrl: String,
+        val username: String?,
+        val password: String?,
+    ) : NotificationSettingsEvent
 }

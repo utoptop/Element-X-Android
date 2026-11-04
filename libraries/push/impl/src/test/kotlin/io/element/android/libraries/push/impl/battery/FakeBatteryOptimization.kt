@@ -8,6 +8,7 @@
 
 package io.element.android.libraries.push.impl.battery
 
+import io.element.android.libraries.push.api.battery.BatteryOptimization
 import io.element.android.tests.testutils.lambda.lambdaError
 
 class FakeBatteryOptimization(

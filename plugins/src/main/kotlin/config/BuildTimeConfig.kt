@@ -9,7 +9,7 @@
 package config
 
 object BuildTimeConfig {
-    const val APPLICATION_ID = "io.element.android.x"
+    const val APPLICATION_ID = "io.element.android.ntfy"
     const val APPLICATION_NAME = "Element X"
     val METADATA_HOST_REVERSED: String? = null
     val OAUTH_CLIENT_URL_PATH: String? = "apps/android"

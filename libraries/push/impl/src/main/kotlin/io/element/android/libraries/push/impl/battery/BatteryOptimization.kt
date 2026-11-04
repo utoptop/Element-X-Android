@@ -10,39 +10,20 @@ package io.element.android.libraries.push.impl.battery
 
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.TextUtils
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.di.annotations.ApplicationContext
+import io.element.android.libraries.push.api.battery.BatteryOptimization
 import io.element.android.services.toolbox.api.intent.ExternalIntentLauncher
 import timber.log.Timber
-
-interface BatteryOptimization {
-    /**
-     * Tells if the application ignores battery optimizations.
-     *
-     * Ignoring them allows the app to run in background to make background sync with the homeserver.
-     * This user option appears on Android M but Android O enforces its usage and kills apps not
-     * authorised by the user to run in background.
-     *
-     * @return true if battery optimisations are ignored
-     */
-    fun isIgnoringBatteryOptimizations(): Boolean
-
-    /**
-     * Request the user to disable battery optimizations for this app.
-     * This will open the system settings where the user can disable battery optimizations.
-     * See https://developer.android.com/training/monitoring-device-state/doze-standby#exemption-cases
-     *
-     * @return true if the intent was successfully started, false if the activity was not found
-     */
-    fun requestDisablingBatteryOptimization(): Boolean
-}
 
 @ContributesBinding(AppScope::class)
 class AndroidBatteryOptimization(
@@ -63,6 +44,32 @@ class AndroidBatteryOptimization(
         }
         // Open settings as a fallback if the first attempt fails
         return launchAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS, withData = false)
+    }
+
+    override fun isAccessibilityServiceEnabled(): Boolean {
+        return try {
+            val enabledServicesSetting = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: return false
+            val colonSplitter = TextUtils.SimpleStringSplitter(':')
+            colonSplitter.setString(enabledServicesSetting)
+            while (colonSplitter.hasNext()) {
+                val componentNameString = colonSplitter.next()
+                val enabledComponent = ComponentName.unflattenFromString(componentNameString)
+                if (enabledComponent != null && enabledComponent.packageName == context.packageName) {
+                    return true
+                }
+            }
+            false
+        } catch (exception: Exception) {
+            Timber.w(exception, "Cannot check accessibility service status.")
+            false
+        }
+    }
+
+    override fun openAccessibilitySettings(): Boolean {
+        return launchAction(Settings.ACTION_ACCESSIBILITY_SETTINGS, withData = false)
     }
 
     private fun launchAction(

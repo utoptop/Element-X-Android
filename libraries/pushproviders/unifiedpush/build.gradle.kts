@@ -31,6 +31,8 @@ dependencies {
     implementation(projects.libraries.pushproviders.api)
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.core)
+    implementation(projects.libraries.designsystem)
+    implementation(libs.androidx.corektx)
     implementation(projects.services.toolbox.api)
 
     implementation(projects.libraries.network)

@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.push.api.battery.BatteryOptimization
 import io.element.android.libraries.push.api.battery.BatteryOptimizationEvent
 import io.element.android.libraries.push.api.battery.BatteryOptimizationState
 import io.element.android.libraries.push.impl.push.MutableBatteryOptimizationStore

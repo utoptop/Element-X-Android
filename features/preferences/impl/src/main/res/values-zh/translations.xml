@@ -27,6 +27,16 @@
   <string name="screen_advanced_settings_optimise_video_upload_quality_standard">"标准（720p）"</string>
   <string name="screen_advanced_settings_optimise_video_upload_quality_title">"视频上传质量"</string>
   <string name="screen_advanced_settings_push_provider_android">"通知推送提供者"</string>
+  <string name="screen_advanced_settings_ntfy_title">"内置 ntfy 设置"</string>
+  <string name="screen_advanced_settings_ntfy_server_url">"ntfy 服务器地址"</string>
+  <string name="screen_advanced_settings_ntfy_server_url_hint">"https://ntfy.sh"</string>
+  <string name="screen_advanced_settings_ntfy_server_url_invalid">"请输入有效的 HTTP 或 HTTPS 地址"</string>
+  <string name="screen_advanced_settings_ntfy_username">"用户名 / ID（可选）"</string>
+  <string name="screen_advanced_settings_ntfy_password">"密码（可选）"</string>
+  <string name="screen_advanced_settings_ntfy_dialog_description">"配置内置 ntfy 推送的服务器地址与登录凭证，无需安装外部 ntfy 应用即可接收推送。"</string>
+  <string name="screen_advanced_settings_battery_optimization_title">"后台常驻与自启动保护"</string>
+  <string name="screen_advanced_settings_battery_optimization_unrestricted">"已开启无限制后台运行（防止被系统杀死）"</string>
+  <string name="screen_advanced_settings_battery_optimization_restricted">"点击允许无限制后台运行与自启动"</string>
   <string name="screen_advanced_settings_share_presence">"分享在线状态"</string>
   <string name="screen_advanced_settings_share_presence_description">"关闭后将无法发送或接收已读回执、输入通知"</string>
   <string name="screen_advanced_settings_show_media_timeline_always_hide">"始终隐藏"</string>
@@ -122,4 +132,10 @@
   <string name="troubleshoot_notifications_entry_point_push_history_title">"推送历史"</string>
   <string name="troubleshoot_notifications_entry_point_section">"排查问题"</string>
   <string name="troubleshoot_notifications_entry_point_title">"排查通知问题"</string>
+  <string name="screen_advanced_settings_accessibility_keepalive_title">"无障碍保活与后台防杀"</string>
+  <string name="screen_advanced_settings_accessibility_keepalive_enabled">"已开启 · 系统级防杀保护已生效"</string>
+  <string name="screen_advanced_settings_accessibility_keepalive_disabled">"未开启 · 点击配置后台防杀与自启"</string>
+  <string name="dialog_accessibility_keepalive_title">"后台常驻与防杀保护"</string>
+  <string name="dialog_accessibility_keepalive_content">"【多任务卡片加锁（强烈推荐，最简单）】\n在手机多任务界面，长按或点击 Element X 卡片上的「锁」图标。加锁后一键清理后台绝不会误杀 Element X。\n\n【无障碍保活模式（系统级防杀）】\n开启系统无障碍服务后，Android 系统底层将受命守护此服务。即使后台被系统意外杀死或划掉，操作系统底层也会在 1 秒内自动重新拉起推送服务。\n(注：本服务仅用于维持推送长连接，绝不收集或监控任何屏幕内容与个人隐私)\n\n是否立即前往系统设置开启「Element X 推送保活服务」？"</string>
+  <string name="dialog_accessibility_keepalive_submit">"前往无障碍设置"</string>
 </resources>

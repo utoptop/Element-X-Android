@@ -17,7 +17,8 @@ import io.element.android.libraries.pushproviders.api.Distributor
 import io.element.android.libraries.pushproviders.api.PushProvider
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
 
-@ContributesIntoSet(AppScope::class)
+// External UnifiedPush distributor disabled: only built-in ntfy and Google push are available.
+// @ContributesIntoSet(AppScope::class)
 class UnifiedPushProvider(
     private val unifiedPushDistributorProvider: UnifiedPushDistributorProvider,
     private val registerUnifiedPushUseCase: RegisterUnifiedPushUseCase,

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="screen_advanced_settings_ntfy_title">Embedded ntfy settings</string>
+    <string name="screen_advanced_settings_ntfy_server_url">ntfy Server URL</string>
+    <string name="screen_advanced_settings_ntfy_server_url_hint">https://ntfy.sh</string>
+    <string name="screen_advanced_settings_ntfy_server_url_invalid">Please enter a valid HTTP or HTTPS URL</string>
+    <string name="screen_advanced_settings_ntfy_username">Username / ID (optional)</string>
+    <string name="screen_advanced_settings_ntfy_password">Password (optional)</string>
+    <string name="screen_advanced_settings_ntfy_dialog_description">Configure the server and credentials for built-in ntfy push notifications.</string>
+    <string name="screen_advanced_settings_battery_optimization_title">Background keep-alive &amp; auto-start</string>
+    <string name="screen_advanced_settings_battery_optimization_unrestricted">Unrestricted (prevent background kill)</string>
+    <string name="screen_advanced_settings_battery_optimization_restricted">Tap to allow unrestricted background running</string>
+    <string name="screen_advanced_settings_accessibility_keepalive_title">Accessibility keep-alive &amp; background protection</string>
+    <string name="screen_advanced_settings_accessibility_keepalive_enabled">Enabled · System-level auto-restart is active</string>
+    <string name="screen_advanced_settings_accessibility_keepalive_disabled">Disabled · Tap to configure background protection</string>
+    <string name="dialog_accessibility_keepalive_title">Background Protection &amp; Auto-Restart</string>
+    <string name="dialog_accessibility_keepalive_content">【Lock app in Recent Apps (Recommended)】\nOpen the multitasking/recent apps screen, long press or tap the lock icon on the Element X card. When locked, clearing all background apps will not kill Element X.\n\n【Accessibility Keep-Alive Service】\nWhen enabled in System Accessibility settings, Android\'s system_server automatically guards this service. Even if the process is swiped away from recent tasks or killed by the system, Android will automatically respawn the push service within 1 second.\n(Note: This service is only used for push persistence and does not collect or inspect any screen content or personal data).\n\nOpen System Accessibility Settings now?</string>
+    <string name="dialog_accessibility_keepalive_submit">Go to Accessibility Settings</string>
+</resources>

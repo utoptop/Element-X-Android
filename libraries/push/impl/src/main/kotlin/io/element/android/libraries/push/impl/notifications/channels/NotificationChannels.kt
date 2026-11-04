@@ -44,7 +44,7 @@ import timber.log.Timber
  * IDs for channels
  * ========================================================================================== */
 internal const val SILENT_NOTIFICATION_CHANNEL_ID = "DEFAULT_SILENT_NOTIFICATION_CHANNEL_ID_V2"
-internal const val NOISY_NOTIFICATION_CHANNEL_ID_BASE = "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID_V2"
+internal const val NOISY_NOTIFICATION_CHANNEL_ID_BASE = "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID_V3"
 internal const val CALL_NOTIFICATION_CHANNEL_ID = "CALL_NOTIFICATION_CHANNEL_ID_V3"
 internal const val RINGING_CALL_NOTIFICATION_CHANNEL_ID_BASE = "RINGING_CALL_NOTIFICATION_CHANNEL_ID"
 
@@ -152,6 +152,7 @@ class DefaultNotificationChannels(
         for (channelId in listOf(
             "DEFAULT_SILENT_NOTIFICATION_CHANNEL_ID",
             "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID",
+            "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID_V2",
             "CALL_NOTIFICATION_CHANNEL_ID",
             "CALL_NOTIFICATION_CHANNEL_ID_V2",
             "LISTEN_FOR_EVENTS_NOTIFICATION_CHANNEL_ID",
@@ -160,11 +161,12 @@ class DefaultNotificationChannels(
                 notificationManager.deleteNotificationChannel(channelId)
             }
         }
+        deleteStaleVersionedChannels("DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID_V2", "")
         // Drop older versioned channels; only the current one remains.
         deleteStaleVersionedChannels(NOISY_NOTIFICATION_CHANNEL_ID_BASE, currentNoisyChannelId)
         deleteStaleVersionedChannels(RINGING_CALL_NOTIFICATION_CHANNEL_ID_BASE, currentRingingCallChannelId)
 
-        // Default notification importance: shows everywhere, makes noise, but does not visually intrude.
+        // High notification importance: shows everywhere, makes noise, and pops up on screen (heads-up banner).
         val noisySoundUri = resolveNoisySoundUri(config.messageSound)
         grantSoundUriToSystem(noisySoundUri)
         notificationManager.createNotificationChannel(
@@ -216,7 +218,7 @@ class DefaultNotificationChannels(
     }
 
     private fun buildNoisyChannel(channelId: String, soundUri: Uri?, accentColor: Int): NotificationChannelCompat {
-        val builder = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_DEFAULT)
+        val builder = NotificationChannelCompat.Builder(channelId, NotificationManagerCompat.IMPORTANCE_HIGH)
             .setName(stringProvider.getString(R.string.notification_channel_noisy).ifEmpty { "Noisy notifications" })
             .setDescription(stringProvider.getString(R.string.notification_channel_noisy))
             .setVibrationEnabled(true)

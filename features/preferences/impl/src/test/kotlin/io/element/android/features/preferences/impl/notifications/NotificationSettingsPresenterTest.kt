@@ -16,6 +16,7 @@ import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.FakeMatrixClient
@@ -24,12 +25,16 @@ import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.push.api.PushService
+import io.element.android.libraries.push.api.battery.BatteryOptimization
+import io.element.android.libraries.push.test.battery.FakeBatteryOptimization
 import io.element.android.libraries.push.api.notifications.NotificationSoundUpdater
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier
 import io.element.android.libraries.push.test.FakePushService
 import io.element.android.libraries.push.test.notifications.FakeNotificationSoundUpdater
 import io.element.android.libraries.push.test.notifications.FakeSoundDisplayNameResolver
 import io.element.android.libraries.push.test.notifications.sound.FakeNotificationSoundCopier
+import io.element.android.libraries.pushproviders.api.Config
+import io.element.android.libraries.pushproviders.api.ConfigurableServerPushProvider
 import io.element.android.libraries.pushproviders.api.Distributor
 import io.element.android.libraries.pushproviders.api.PushProvider
 import io.element.android.libraries.pushproviders.test.FakePushProvider
@@ -1148,9 +1153,90 @@ class NotificationSettingsPresenterTest {
         }
     }
 
+    @Test
+    fun `present - shows ntfy settings and dialog events`() = runTest {
+        val ntfyProvider = FakeConfigurableServerPushProvider(
+            serverUrl = "https://ntfy.sh",
+            username = "alice",
+        )
+        val presenter = createNotificationSettingsPresenter(
+            configurablePushProvider = ntfyProvider,
+        )
+        presenter.test {
+            val initialState = consumeItemsUntilPredicate { it.ntfyServerUrl != null }.last()
+            assertThat(initialState.ntfyServerUrl).isEqualTo("https://ntfy.sh")
+            assertThat(initialState.ntfyUsername).isEqualTo("alice")
+            assertThat(initialState.showNtfySettingsDialog).isFalse()
+
+            initialState.eventSink(NotificationSettingsEvent.ShowNtfySettingsDialog)
+            val dialogOpenState = consumeItemsUntilPredicate { it.showNtfySettingsDialog }.last()
+            assertThat(dialogOpenState.showNtfySettingsDialog).isTrue()
+
+            dialogOpenState.eventSink(NotificationSettingsEvent.DismissNtfySettingsDialog)
+            val dialogClosedState = consumeItemsUntilPredicate { !it.showNtfySettingsDialog }.last()
+            assertThat(dialogClosedState.showNtfySettingsDialog).isFalse()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - saves ntfy settings and updates state`() = runTest {
+        val ntfyProvider = FakeConfigurableServerPushProvider(
+            serverUrl = "https://ntfy.sh",
+            username = null,
+        )
+        val presenter = createNotificationSettingsPresenter(
+            configurablePushProvider = ntfyProvider,
+        )
+        presenter.test {
+            val initialState = consumeItemsUntilPredicate { it.ntfyServerUrl != null }.last()
+            assertThat(initialState.ntfyServerUrl).isEqualTo("https://ntfy.sh")
+            assertThat(initialState.ntfyUsername).isNull()
+
+            initialState.eventSink(
+                NotificationSettingsEvent.SaveNtfySettings(
+                    serverUrl = "https://custom.ntfy.server",
+                    username = "bob",
+                    password = "secret",
+                )
+            )
+
+            val updatedState = consumeItemsUntilPredicate { it.ntfyUsername == "bob" }.last()
+            assertThat(updatedState.ntfyServerUrl).isEqualTo("https://custom.ntfy.server")
+            assertThat(updatedState.ntfyUsername).isEqualTo("bob")
+            assertThat(updatedState.ntfyPassword).isEqualTo("secret")
+            assertThat(ntfyProvider.getServerUrl()).isEqualTo("https://custom.ntfy.server")
+            assertThat(ntfyProvider.getUsername()).isEqualTo("bob")
+            assertThat(ntfyProvider.getPassword()).isEqualTo("secret")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private class FakeConfigurableServerPushProvider(
+        private var serverUrl: String = "https://ntfy.sh",
+        private var username: String? = null,
+        private var password: String? = null,
+        override val serverConfigTitle: String = "ntfy",
+    ) : ConfigurableServerPushProvider {
+        override fun getServerUrl(): String = serverUrl
+        override suspend fun setServerUrl(url: String) {
+            serverUrl = url
+        }
+        override fun getUsername(): String? = username
+        override suspend fun setUsername(username: String?) {
+            this.username = username
+        }
+        override fun getPassword(): String? = password
+        override suspend fun setPassword(password: String?) {
+            this.password = password
+        }
+    }
+
     private fun TestScope.createNotificationSettingsPresenter(
         notificationSettingsService: FakeNotificationSettingsService = FakeNotificationSettingsService(),
         pushService: PushService = FakePushService(),
+        configurablePushProvider: ConfigurableServerPushProvider = FakeConfigurableServerPushProvider(),
+        batteryOptimization: BatteryOptimization = FakeBatteryOptimization(),
         fullScreenIntentPermissionsStateLambda: () -> FullScreenIntentPermissionsState = { aFullScreenIntentPermissionsState() },
         appPreferencesStore: AppPreferencesStore = InMemoryAppPreferencesStore(),
         notificationSoundUpdater: NotificationSoundUpdater = FakeNotificationSoundUpdater(),
@@ -1168,6 +1254,8 @@ class NotificationSettingsPresenterTest {
             userPushStoreFactory = FakeUserPushStoreFactory(),
             matrixClient = matrixClient,
             pushService = pushService,
+            configurablePushProvider = configurablePushProvider,
+            batteryOptimization = batteryOptimization,
             systemNotificationsEnabledProvider = FakeSystemNotificationsEnabledProvider(),
             fullScreenIntentPermissionsPresenter = { fullScreenIntentPermissionsStateLambda() },
             appPreferencesStore = appPreferencesStore,
