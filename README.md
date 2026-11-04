@@ -6,7 +6,45 @@
 [![Element X Android Matrix room #element-x-android:matrix.org](https://img.shields.io/matrix/element-x-android:matrix.org.svg?label=%23element-x-android:matrix.org&logo=matrix&server_fqdn=matrix.org)](https://matrix.to/#/#element-x-android:matrix.org)
 [![Localazy](https://img.shields.io/endpoint?url=https%3A%2F%2Fconnect.localazy.com%2Fstatus%2Felement%2Fdata%3Fcontent%3Dall%26title%3Dlocalazy%26logo%3Dtrue)](https://localazy.com/p/element)
 
-# Element X Android
+# Element X Android (内置 ntfy 增强版 · Embedded ntfy Edition)
+
+> 本仓库是基于官方 [element-hq/element-x-android](https://github.com/element-hq/element-x-android) 深度定制的增强分支，核心特性为**内置 ntfy 推送服务、后台常驻保活与防杀自启**，解决国内及无 Google 框架 Android 设备的即时通讯推送痛点，同时 100% 保持官方原生 Element X 的现代极简设计与交互体验。
+
+---
+
+## 🌟 分支特性与优势 (Features & Highlights)
+
+### 1. 🚀 原生内置 ntfy 推送服务（无需安装外部独立 App）
+- **开箱即用**：直接在客户端内部实现了 ntfy 客户端订阅协议，完全不需要安装外部 ntfy app 或第三方 UnifiedPush 分发器。
+- **告别报错**：彻底移除了官方原版因外部分发器缺失而产生的弹窗报错问题；默认推送通道自动选择「内置 ntfy (推荐)」。
+- **自定义服务器支持**：在「设置」->「通知」高级设置中，用户可随时填写自建的私有 ntfy 服务器地址（如 `https://push.example.com`）并支持凭据鉴权。
+
+### 2. 🛡️ 完善的后台常驻保活与自启防杀体系
+针对国内各品牌 Android 系统（如 Moto MYUI、MIUI/HyperOS、ColorOS、OriginOS 等）激进的后台查杀机制进行了专项强化：
+- **前台保活服务 (Persistent Foreground Service)**：系统通知栏常驻保活通道，维持长连接与心跳。
+- **开机自启动 (Boot Receiver)**：注册 `BOOT_COMPLETED` 广播，手机重启后无缝自动唤醒推送接收服务。
+- **系统级无障碍辅助守护 (Accessibility Service)**：可选开启系统底层无障碍守护，在用户清空近期任务列表或划掉卡片后，底层依然能迅速拉起推送服务。
+- **省电与低功耗优化**：长轮询与长连接均经过精细调优，只在有新事件时唤醒，既保证 0 延迟秒推，又避免电池异常消耗。
+
+### 3. 🔔 默认高优先级横幅弹出通知 (Heads-up Floating Banners)
+- 通知渠道深度优化为 **`IMPORTANCE_HIGH`（高优先级）**。
+- 新消息到达时直接在手机屏幕顶端以浮动横幅弹出并伴随提示音，无需手动进入 Android 系统复杂的通知权限设置中逐一开启“在屏幕上弹出”。
+
+### 4. 📦 独立包名，与官方版安全共存
+- 包名独立定制为 **`io.element.android.ntfy`**。
+- 可与 Google Play 或 F-Droid 上的官方原版 Element X 客户端同时安装在同一台手机上，账号数据互不干扰，绝无签名或包名冲突。
+
+### 5. 🎨 纯正的原生 Element X 设计美学
+- 遵循官方最新的 **Compound Design System** 与 Jetpack Compose 规范。
+- 采用原生的对话气泡、字体排版、配色与动效，视觉体验轻快、纯净、统一。
+
+### 6. 📱 双版本打包提供
+- **Gplay 正式版**：双模推送架构（支持内置 ntfy 与 Google FCM 自由切换）。
+- **F-Droid 正式版**：100% 纯净无 GMS 代码，完全不依赖任何 Google 框架。
+
+---
+
+# Element X Android (Upstream)
 
 Element X Android is the next-generation [Matrix](https://matrix.org/) client provided by [Element](https://element.io/).
 
