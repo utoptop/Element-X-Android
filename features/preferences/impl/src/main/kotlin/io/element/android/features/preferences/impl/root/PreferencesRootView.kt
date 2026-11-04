@@ -9,6 +9,9 @@
 package io.element.android.features.preferences.impl.root
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -17,6 +20,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -34,7 +41,10 @@ import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.coverage.ExcludeFromCoverage
 import io.element.android.libraries.designsystem.components.async.AsyncActionIndicator
 import io.element.android.libraries.designsystem.components.async.AsyncIndicator
+import io.element.android.libraries.designsystem.components.dialogs.ListOption
+import io.element.android.libraries.designsystem.components.dialogs.SingleSelectionDialog
 import io.element.android.libraries.designsystem.components.list.ListItemContent
+import kotlinx.collections.immutable.toImmutableList
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
 import io.element.android.libraries.designsystem.components.preferences.PreferenceDropdown
 import io.element.android.libraries.designsystem.components.preferences.PreferencePage
@@ -227,6 +237,59 @@ private fun AppSettingsSection(
                 state.eventSink(PreferencesRootEvent.SetTheme(themeOption))
             }
         )
+        var showWallpaperDialog by rememberSaveable { mutableStateOf(false) }
+        val photoPicker = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia(),
+            onResult = { uri ->
+                if (uri != null) {
+                    state.eventSink(PreferencesRootEvent.SetCustomWallpaperUri(uri.toString()))
+                    state.eventSink(PreferencesRootEvent.SetChatWallpaper("custom"))
+                }
+            }
+        )
+
+        val wallpaperSummary = when (state.chatWallpaper) {
+            "telegram_classic" -> stringResource(R.string.settings_chat_wallpaper_telegram_classic)
+            "ocean" -> stringResource(R.string.settings_chat_wallpaper_ocean)
+            "mint" -> stringResource(R.string.settings_chat_wallpaper_mint)
+            "dark_slate" -> stringResource(R.string.settings_chat_wallpaper_dark_slate)
+            "custom" -> stringResource(R.string.settings_chat_wallpaper_custom)
+            else -> stringResource(R.string.settings_chat_wallpaper_none)
+        }
+
+        ListItem(
+            content = { Text(stringResource(R.string.settings_chat_wallpaper_title)) },
+            supportingContent = { Text(wallpaperSummary) },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Image())),
+            onClick = { showWallpaperDialog = true },
+        )
+
+        if (showWallpaperDialog) {
+            val options = listOf(
+                "telegram_classic" to stringResource(R.string.settings_chat_wallpaper_telegram_classic),
+                "ocean" to stringResource(R.string.settings_chat_wallpaper_ocean),
+                "mint" to stringResource(R.string.settings_chat_wallpaper_mint),
+                "dark_slate" to stringResource(R.string.settings_chat_wallpaper_dark_slate),
+                "custom" to stringResource(R.string.settings_chat_wallpaper_custom),
+                "none" to stringResource(R.string.settings_chat_wallpaper_none),
+            )
+            val currentIdx = options.indexOfFirst { it.first == state.chatWallpaper }.coerceAtLeast(0)
+            SingleSelectionDialog(
+                title = stringResource(R.string.settings_chat_wallpaper_title),
+                options = options.map { ListOption(it.second) }.toImmutableList(),
+                initialSelection = currentIdx,
+                onSelectOption = { index ->
+                    val selected = options[index]
+                    if (selected.first == "custom") {
+                        photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    } else {
+                        state.eventSink(PreferencesRootEvent.SetChatWallpaper(selected.first))
+                    }
+                    showWallpaperDialog = false
+                },
+                onDismissRequest = { showWallpaperDialog = false },
+            )
+        }
         ListItem(
             content = { Text(stringResource(id = CommonStrings.common_media_upload_quality)) },
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Image())),

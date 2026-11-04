@@ -23,6 +23,8 @@ import kotlinx.collections.immutable.ImmutableList
 data class PreferencesRootState(
     val myUser: MatrixUser,
     val theme: ThemeOption,
+    val chatWallpaper: String = "telegram_classic",
+    val customWallpaperUri: String? = null,
     val preferencesAccountState: PreferencesAccountState,
     val availableThemeOptions: ImmutableList<ThemeOption>,
     val userStatusState: UserStatusState?,

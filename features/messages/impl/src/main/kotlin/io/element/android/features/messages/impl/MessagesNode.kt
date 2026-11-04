@@ -14,6 +14,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import io.element.android.features.messages.impl.timeline.components.ChatWallpaperState
+import io.element.android.features.messages.impl.timeline.components.LocalChatWallpaper
+import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,6 +109,7 @@ class MessagesNode(
     private val eventContentValidationCache: EventContentValidationCache,
     private val emojiPickerRenderer: EmojiPickerRenderer,
     private val timelineController: TimelineController,
+    private val appPreferencesStore: AppPreferencesStore,
 ) : Node(buildContext, plugins = plugins), MessagesNavigator, TimelineSelectionOwner {
     data class Inputs(
         val focusedEventId: EventId?,
@@ -270,9 +276,12 @@ class MessagesNode(
         val activity = requireNotNull(LocalActivity.current)
         val isDark = ElementTheme.isLightTheme.not()
         val canUseOverlay = !isTalkbackActive() && !hasExternalKeyboard()
+        val chatWallpaper by appPreferencesStore.getChatWallpaperFlow().collectAsState(initial = "telegram_classic")
+        val customWallpaperUri by appPreferencesStore.getCustomWallpaperUriFlow().collectAsState(initial = null)
         CompositionLocalProvider(
             LocalTimelineItemPresenterFactories provides timelineItemPresenterFactories,
             LocalEventContentValidationState provides eventContentValidationCache,
+            LocalChatWallpaper provides ChatWallpaperState(chatWallpaper, customWallpaperUri),
         ) {
             val state = presenter.present()
 

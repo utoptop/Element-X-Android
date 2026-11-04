@@ -36,11 +36,15 @@ class InMemoryAppPreferencesStore(
     callRingtone: NotificationSound = NotificationSound.SystemDefault,
     callRingtoneChannelVersion: Int = 0,
     callRingtoneDisplayName: String? = null,
+    chatWallpaper: String = "telegram_classic",
+    customWallpaperUri: String? = null,
 ) : AppPreferencesStore {
     private val isDeveloperModeEnabled = MutableStateFlow(isDeveloperModeEnabled)
     private val isOtherAccountsExpanded = MutableStateFlow(isOtherAccountsExpanded)
     private val customElementCallBaseUrl = MutableStateFlow(customElementCallBaseUrl)
     private val theme = MutableStateFlow(theme)
+    private val chatWallpaper = MutableStateFlow(chatWallpaper)
+    private val customWallpaperUri = MutableStateFlow(customWallpaperUri)
     private val liveLocationMinimumDistanceUpdate = MutableStateFlow(liveLocationMinimumDistanceUpdate)
     private val logLevel = MutableStateFlow(logLevel)
     private val tracingLogPacks = MutableStateFlow(traceLogPacks)
@@ -84,6 +88,22 @@ class InMemoryAppPreferencesStore(
 
     override fun getThemeFlow(): Flow<String?> {
         return theme
+    }
+
+    override suspend fun setChatWallpaper(wallpaper: String) {
+        chatWallpaper.value = wallpaper
+    }
+
+    override fun getChatWallpaperFlow(): Flow<String> {
+        return chatWallpaper
+    }
+
+    override suspend fun setCustomWallpaperUri(uri: String?) {
+        customWallpaperUri.value = uri
+    }
+
+    override fun getCustomWallpaperUriFlow(): Flow<String?> {
+        return customWallpaperUri
     }
 
     override suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int) {

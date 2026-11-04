@@ -45,6 +45,22 @@ interface AppPreferencesStore {
     fun getThemeFlow(): Flow<String?>
 
     /**
+     * @param wallpaper the wallpaper preset name (e.g. "telegram_classic", "ocean", "mint", "dark_slate", "custom", "none").
+     */
+    suspend fun setChatWallpaper(wallpaper: String)
+
+    /** The name of the chosen chat wallpaper; defaults to "telegram_classic". */
+    fun getChatWallpaperFlow(): Flow<String>
+
+    /**
+     * @param uri the URI of the custom wallpaper image from device storage, or null.
+     */
+    suspend fun setCustomWallpaperUri(uri: String?)
+
+    /** The custom wallpaper image URI flow. */
+    fun getCustomWallpaperUriFlow(): Flow<String?>
+
+    /**
      * @param expanded true to expand the other accounts section.
      */
     suspend fun setOtherAccountsExpanded(expanded: Boolean)
