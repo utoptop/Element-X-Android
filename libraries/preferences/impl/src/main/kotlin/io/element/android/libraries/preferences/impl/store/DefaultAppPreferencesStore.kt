@@ -32,8 +32,6 @@ import kotlinx.coroutines.flow.map
 private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
 private val themeKey = stringPreferencesKey("theme")
-private val chatWallpaperKey = stringPreferencesKey("chatWallpaper")
-private val customWallpaperUriKey = stringPreferencesKey("customWallpaperUri")
 private val hideInviteAvatarsKey = booleanPreferencesKey("hideInviteAvatars")
 private val otherAccountsExpandedKey = booleanPreferencesKey("otherAccountsExpanded")
 private val timelineMediaPreviewValueKey = stringPreferencesKey("timelineMediaPreviewValue")
@@ -97,34 +95,6 @@ class DefaultAppPreferencesStore(
     override fun getThemeFlow(): Flow<String?> {
         return store.data.map { prefs ->
             prefs[themeKey]
-        }
-    }
-
-    override suspend fun setChatWallpaper(wallpaper: String) {
-        store.edit { prefs ->
-            prefs[chatWallpaperKey] = wallpaper
-        }
-    }
-
-    override fun getChatWallpaperFlow(): Flow<String> {
-        return store.data.map { prefs ->
-            prefs[chatWallpaperKey] ?: "telegram_classic"
-        }
-    }
-
-    override suspend fun setCustomWallpaperUri(uri: String?) {
-        store.edit { prefs ->
-            if (uri != null) {
-                prefs[customWallpaperUriKey] = uri
-            } else {
-                prefs.remove(customWallpaperUriKey)
-            }
-        }
-    }
-
-    override fun getCustomWallpaperUriFlow(): Flow<String?> {
-        return store.data.map { prefs ->
-            prefs[customWallpaperUriKey]
         }
     }
 

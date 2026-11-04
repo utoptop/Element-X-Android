@@ -138,11 +138,4 @@
   <string name="dialog_accessibility_keepalive_title">"后台常驻与防杀保护"</string>
   <string name="dialog_accessibility_keepalive_content">"【多任务卡片加锁（强烈推荐，最简单）】\n在手机多任务界面，长按或点击 Element X 卡片上的「锁」图标。加锁后一键清理后台绝不会误杀 Element X。\n\n【无障碍保活模式（系统级防杀）】\n开启系统无障碍服务后，Android 系统底层将受命守护此服务。即使后台被系统意外杀死或划掉，操作系统底层也会在 1 秒内自动重新拉起推送服务。\n(注：本服务仅用于维持推送长连接，绝不收集或监控任何屏幕内容与个人隐私)\n\n是否立即前往系统设置开启「Element X 推送保活服务」？"</string>
   <string name="dialog_accessibility_keepalive_submit">"前往无障碍设置"</string>
-  <string name="settings_chat_wallpaper_title">"聊天壁纸与主题"</string>
-  <string name="settings_chat_wallpaper_telegram_classic">"Telegram 经典 (微纹理与柔和绿)"</string>
-  <string name="settings_chat_wallpaper_ocean">"清新天蓝 (天空渐变)"</string>
-  <string name="settings_chat_wallpaper_mint">"清新薄荷 (薄荷渐变)"</string>
-  <string name="settings_chat_wallpaper_dark_slate">"暗夜深空 (深邃灰黑)"</string>
-  <string name="settings_chat_wallpaper_custom">"从相册选择自定义图片…"</string>
-  <string name="settings_chat_wallpaper_none">"极简默认 (无壁纸)"</string>
 </resources>

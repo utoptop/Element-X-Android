@@ -35,17 +35,15 @@ val SemanticColors.roomListRoomMessageDate
 val SemanticColors.placeholderBackground
     get() = bgSubtleSecondary
 
-// Modern Telegram / Signal style bubble colors:
-// Light: Outgoing is soft pastel spring green (#EFFDDE); Incoming is pure crisp white (#FFFFFF)
-// Dark: Outgoing is Telegram slate ocean navy (#2B5278); Incoming is sleek slate charcoal (#1E2C3A)
+// This color is not present in Semantic color, so put hard-coded value for now
 @OptIn(CoreColorToken::class)
 val SemanticColors.messageFromMeBackground
-    get() = if (isLight) Color(0xFFEFFDDE) else Color(0xFF2B5278)
+    get() = if (isLight) LightColorTokens.colorGray400 else DarkColorTokens.colorGray500
 
-// Modern Telegram / Signal incoming bubble
+// This color is not present in Semantic color, so put hard-coded value for now
 @OptIn(CoreColorToken::class)
 val SemanticColors.messageFromOtherBackground
-    get() = if (isLight) Color(0xFFFFFFFF) else Color(0xFF1E2C3A)
+    get() = if (isLight) LightColorTokens.colorGray300 else DarkColorTokens.colorGray400
 
 // This color is not present in Semantic color, so put hard-coded value for now
 @OptIn(CoreColorToken::class)

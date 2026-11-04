@@ -16,11 +16,4 @@
     <string name="dialog_accessibility_keepalive_title">Background Protection &amp; Auto-Restart</string>
     <string name="dialog_accessibility_keepalive_content">【Lock app in Recent Apps (Recommended)】\nOpen the multitasking/recent apps screen, long press or tap the lock icon on the Element X card. When locked, clearing all background apps will not kill Element X.\n\n【Accessibility Keep-Alive Service】\nWhen enabled in System Accessibility settings, Android\'s system_server automatically guards this service. Even if the process is swiped away from recent tasks or killed by the system, Android will automatically respawn the push service within 1 second.\n(Note: This service is only used for push persistence and does not collect or inspect any screen content or personal data).\n\nOpen System Accessibility Settings now?</string>
     <string name="dialog_accessibility_keepalive_submit">Go to Accessibility Settings</string>
-    <string name="settings_chat_wallpaper_title">Chat wallpaper &amp; theme</string>
-    <string name="settings_chat_wallpaper_telegram_classic">Telegram Classic (soft pattern &amp; green bubbles)</string>
-    <string name="settings_chat_wallpaper_ocean">Ocean Sky (sky gradient)</string>
-    <string name="settings_chat_wallpaper_mint">Emerald Mint (mint gradient)</string>
-    <string name="settings_chat_wallpaper_dark_slate">Midnight Slate (deep dark gradient)</string>
-    <string name="settings_chat_wallpaper_custom">Custom photo from gallery…</string>
-    <string name="settings_chat_wallpaper_none">Minimalist (no wallpaper)</string>
 </resources>

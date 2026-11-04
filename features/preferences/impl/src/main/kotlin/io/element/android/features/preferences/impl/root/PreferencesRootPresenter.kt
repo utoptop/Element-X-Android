@@ -137,9 +137,6 @@ class PreferencesRootPresenter(
 
         val isLocationServiceAvailable by remember { locationService.isServiceAvailable() }.collectAsState()
 
-        val chatWallpaper by appPreferencesStore.getChatWallpaperFlow().collectAsState(initial = "telegram_classic")
-        val customWallpaperUri by appPreferencesStore.getCustomWallpaperUriFlow().collectAsState(initial = null)
-
         fun handleEvent(event: PreferencesRootEvent) {
             when (event) {
                 is PreferencesRootEvent.OnVersionInfoClick -> {
@@ -156,12 +153,6 @@ class PreferencesRootPresenter(
                         ThemeOption.Light -> appPreferencesStore.setTheme(Theme.Light.name)
                     }
                 }
-                is PreferencesRootEvent.SetChatWallpaper -> sessionCoroutineScope.launch {
-                    appPreferencesStore.setChatWallpaper(event.wallpaper)
-                }
-                is PreferencesRootEvent.SetCustomWallpaperUri -> sessionCoroutineScope.launch {
-                    appPreferencesStore.setCustomWallpaperUri(event.uri)
-                }
             }
         }
 
@@ -170,8 +161,6 @@ class PreferencesRootPresenter(
             userStatusState = userStatusState,
             preferencesAccountState = preferencesAccountState,
             theme = themeOption,
-            chatWallpaper = chatWallpaper,
-            customWallpaperUri = customWallpaperUri,
             availableThemeOptions = availableThemeOptions,
             version = remember { versionFormatter.get() },
             isMultiAccountEnabled = isMultiAccountEnabled,

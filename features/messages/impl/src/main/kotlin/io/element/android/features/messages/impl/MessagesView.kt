@@ -45,7 +45,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -89,8 +88,6 @@ import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
 import io.element.android.features.messages.impl.timeline.aTimelineItemList
 import io.element.android.features.messages.impl.timeline.aTimelineState
 import io.element.android.features.messages.impl.timeline.canApplyTo
-import io.element.android.features.messages.impl.timeline.components.ChatWallpaperView
-import io.element.android.features.messages.impl.timeline.components.LocalChatWallpaper
 import io.element.android.features.messages.impl.timeline.components.CallMenuItem
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvent
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvent
@@ -256,7 +253,6 @@ fun MessagesView(
             },
         content = {
             Scaffold(
-                containerColor = Color.Transparent,
                 contentWindowInsets = scaffoldScrollableContentInsets,
                 topBar = {
                     when {
@@ -311,10 +307,6 @@ fun MessagesView(
                             .padding(padding)
                             .consumeWindowInsets(padding)
                     ) {
-                        ChatWallpaperView(
-                            state = LocalChatWallpaper.current,
-                            modifier = Modifier.fillMaxSize(),
-                        )
                         MessagesViewContent(
                             state = state,
                             onContentClick = ::onContentClick,

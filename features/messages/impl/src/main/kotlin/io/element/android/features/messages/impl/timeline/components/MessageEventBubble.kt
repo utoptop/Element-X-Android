@@ -54,9 +54,7 @@ import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.utils.a11y.isTalkbackActive
 import io.element.android.libraries.ui.utils.graphics.drawInLayer
 
-private val BUBBLE_RADIUS = 16.dp
-private val BUBBLE_CORNER_TIGHT = 4.dp
-private val BUBBLE_CORNER_MEDIUM = 6.dp
+private val BUBBLE_RADIUS = 12.dp
 private val avatarRadius = AvatarSize.TimelineSender.dp / 2
 
 private val MIN_BUBBLE_WIDTH = 80.dp
@@ -92,15 +90,7 @@ fun MessageEventBubble(
     val radiusPx = (avatarRadius + SENDER_AVATAR_BORDER_WIDTH).toPx()
     val yOffsetPx = -(NEGATIVE_MARGIN_FOR_BUBBLE + avatarRadius).toPx()
 
-    val isLight = ElementTheme.isLightTheme
-    val defaultBorder = remember(state.isMine, isLight) {
-        if (isLight) {
-            if (state.isMine) Color(0x10000000) else Color(0x1C000000)
-        } else {
-            null
-        }
-    }
-    val updatedBorderColor by rememberUpdatedState(borderColor ?: defaultBorder)
+    val updatedBorderColor by rememberUpdatedState(borderColor)
     BoxWithConstraints(
         modifier = modifier
             .drawWithCache {
@@ -160,68 +150,30 @@ fun MessageEventBubble(
 
 object MessageEventBubbleDefaults {
     fun shape(cutTopStart: Boolean, groupPosition: TimelineItemGroupPosition, isMine: Boolean): Shape {
-        val topLeftCorner = if (cutTopStart) BUBBLE_CORNER_TIGHT else BUBBLE_RADIUS
+        val topLeftCorner = if (cutTopStart) 0.dp else BUBBLE_RADIUS
         return when (groupPosition) {
             TimelineItemGroupPosition.First -> if (isMine) {
-                RoundedCornerShape(
-                    topStart = BUBBLE_RADIUS,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_CORNER_MEDIUM,
-                    bottomStart = BUBBLE_RADIUS
-                )
+                RoundedCornerShape(BUBBLE_RADIUS, BUBBLE_RADIUS, 0.dp, BUBBLE_RADIUS)
             } else {
-                RoundedCornerShape(
-                    topStart = topLeftCorner,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_RADIUS,
-                    bottomStart = BUBBLE_CORNER_MEDIUM
-                )
+                RoundedCornerShape(topLeftCorner, BUBBLE_RADIUS, BUBBLE_RADIUS, 0.dp)
             }
             TimelineItemGroupPosition.Middle -> if (isMine) {
-                RoundedCornerShape(
-                    topStart = BUBBLE_RADIUS,
-                    topEnd = BUBBLE_CORNER_MEDIUM,
-                    bottomEnd = BUBBLE_CORNER_MEDIUM,
-                    bottomStart = BUBBLE_RADIUS
-                )
+                RoundedCornerShape(BUBBLE_RADIUS, 0.dp, 0.dp, BUBBLE_RADIUS)
             } else {
-                RoundedCornerShape(
-                    topStart = BUBBLE_CORNER_MEDIUM,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_RADIUS,
-                    bottomStart = BUBBLE_CORNER_MEDIUM
-                )
+                RoundedCornerShape(0.dp, BUBBLE_RADIUS, BUBBLE_RADIUS, 0.dp)
             }
             TimelineItemGroupPosition.Last -> if (isMine) {
-                RoundedCornerShape(
-                    topStart = BUBBLE_RADIUS,
-                    topEnd = BUBBLE_CORNER_MEDIUM,
-                    bottomEnd = BUBBLE_CORNER_TIGHT,
-                    bottomStart = BUBBLE_RADIUS
-                )
+                RoundedCornerShape(BUBBLE_RADIUS, 0.dp, BUBBLE_RADIUS, BUBBLE_RADIUS)
             } else {
-                RoundedCornerShape(
-                    topStart = BUBBLE_CORNER_MEDIUM,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_RADIUS,
-                    bottomStart = BUBBLE_CORNER_TIGHT
-                )
+                RoundedCornerShape(0.dp, BUBBLE_RADIUS, BUBBLE_RADIUS, BUBBLE_RADIUS)
             }
-            TimelineItemGroupPosition.None -> if (isMine) {
+            TimelineItemGroupPosition.None ->
                 RoundedCornerShape(
-                    topStart = BUBBLE_RADIUS,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_CORNER_TIGHT,
-                    bottomStart = BUBBLE_RADIUS
+                    topLeftCorner,
+                    BUBBLE_RADIUS,
+                    BUBBLE_RADIUS,
+                    BUBBLE_RADIUS
                 )
-            } else {
-                RoundedCornerShape(
-                    topStart = topLeftCorner,
-                    topEnd = BUBBLE_RADIUS,
-                    bottomEnd = BUBBLE_RADIUS,
-                    bottomStart = BUBBLE_CORNER_TIGHT
-                )
-            }
         }
     }
 
@@ -234,8 +186,8 @@ object MessageEventBubbleDefaults {
         }
     }
 
-    // Modern Telegram style bubble width ratio: 82%
-    const val BUBBLE_WIDTH_RATIO = 0.82f
+    // Design says: The maximum width of a bubble is still 3/4 of the screen width. But try with 78% now.
+    const val BUBBLE_WIDTH_RATIO = 0.78f
 }
 
 @PreviewsDayNight

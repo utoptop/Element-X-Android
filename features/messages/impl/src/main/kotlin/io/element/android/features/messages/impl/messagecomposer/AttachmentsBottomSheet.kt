@@ -37,7 +37,6 @@ import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.ListItem
 import io.element.android.libraries.designsystem.theme.components.ModalBottomSheet
 import io.element.android.libraries.designsystem.theme.components.Text
-import io.element.android.libraries.ui.strings.CommonStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,11 +117,6 @@ private fun AttachmentSourcePickerMenu(
             modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.FromGallery) },
             leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Image())),
             content = { Text(stringResource(R.string.screen_room_attachment_source_gallery)) },
-        )
-        ListItem(
-            modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.FromGallery) },
-            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Reaction())),
-            content = { Text(stringResource(CommonStrings.common_sticker)) },
         )
         ListItem(
             modifier = Modifier.clickable { state.eventSink(MessageComposerEvent.PickAttachmentSource.FromFiles) },
