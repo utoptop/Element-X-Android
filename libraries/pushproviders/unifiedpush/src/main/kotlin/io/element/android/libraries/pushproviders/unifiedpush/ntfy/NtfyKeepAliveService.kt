@@ -20,6 +20,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import io.element.android.libraries.architecture.bindings
+import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.designsystem.utils.CommonDrawables
 import timber.log.Timber
@@ -36,11 +38,26 @@ class NtfyKeepAliveService : Service() {
         super.onCreate()
         ensureNotificationChannelExists()
         startInForeground()
+        ensureNtfySubscriberConnected()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground()
+        ensureNtfySubscriberConnected()
         return START_STICKY
+    }
+
+    private fun ensureNtfySubscriberConnected() {
+        tryOrNull {
+            val bindings = bindings<NtfyBindings>()
+            val store = bindings.ntfyStore()
+            val topics = store.getAllTopics()
+            if (topics.isNotEmpty()) {
+                Timber.i("Ensuring NtfySubscriber is active for ${topics.size} topics")
+                val subscriber = bindings.ntfySubscriber()
+                subscriber.restart()
+            }
+        }
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {

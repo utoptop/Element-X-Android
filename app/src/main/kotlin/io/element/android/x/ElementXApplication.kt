@@ -64,6 +64,15 @@ class ElementXApplication private constructor(
         elementCallActivityHost.bind { bindings<AppBindings>().nativeCallScreenHost() }
         logApplicationInfo(this, sdkMetadata.sdkGitSha)
 
+        // Ensure ntfy push connection starts immediately on process launch if topics are registered
+        io.element.android.libraries.core.data.tryOrNull {
+            val ntfyBindings = bindings<io.element.android.libraries.pushproviders.unifiedpush.ntfy.NtfyBindings>()
+            val topics = ntfyBindings.ntfyStore().getAllTopics()
+            if (topics.isNotEmpty()) {
+                ntfyBindings.ntfySubscriber().restart()
+            }
+        }
+
         // Disable the strict offset check for anchored draggable components, as it can cause issues with bottom sheets.
         // Remove once https://issuetracker.google.com/issues/477038695 is fixed.
         isAnchoredDraggableComponentsStrictOffsetCheckEnabled = false

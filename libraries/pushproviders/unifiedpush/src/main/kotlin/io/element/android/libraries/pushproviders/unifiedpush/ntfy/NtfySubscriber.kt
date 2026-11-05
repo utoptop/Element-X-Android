@@ -117,7 +117,13 @@ class DefaultNtfySubscriber(
     }
 
     override fun restart() {
-        Timber.tag(loggerTag.value).d("Restarting ntfy connection with new settings")
+        Timber.tag(loggerTag.value).d("Restarting ntfy connection with current settings")
+        if (activeTopics.isEmpty()) {
+            val storedTopics = ntfyStore.getAllTopics()
+            if (storedTopics.isNotEmpty()) {
+                activeTopics.putAll(storedTopics)
+            }
+        }
         reconnect()
     }
 
