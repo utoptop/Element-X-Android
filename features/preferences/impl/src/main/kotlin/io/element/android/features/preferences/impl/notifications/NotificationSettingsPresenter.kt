@@ -350,14 +350,23 @@ class NotificationSettingsPresenter(
                         ntfyUsernameState.value = configurablePushProvider.getUsername()
                         ntfyPasswordState.value = configurablePushProvider.getPassword()
 
-                        // If currently using ntfy distributor, re-register pusher
-                        val currentDist = currentDistributor.dataOrNull()
+                        currentDistributor = AsyncData.Loading(currentDistributor.dataOrNull())
                         val ntfyProvider = pushService.getAvailablePushProviders().find { it.name == "ntfy" }
-                        if (currentDist != null && ntfyProvider != null && ntfyProvider.getDistributors().any { it.value == currentDist.value }) {
-                            pushService.registerWith(
+                        val ntfyDist = ntfyProvider?.getDistributors()?.firstOrNull()
+
+                        if (ntfyProvider != null && ntfyDist != null) {
+                            val result = pushService.registerWith(
                                 matrixClient = matrixClient,
                                 pushProvider = ntfyProvider,
-                                distributor = currentDist,
+                                distributor = ntfyDist,
+                            )
+                            result.fold(
+                                onSuccess = {
+                                    currentDistributor = AsyncData.Success(ntfyDist)
+                                },
+                                onFailure = {
+                                    currentDistributor = AsyncData.Failure(it)
+                                }
                             )
                         }
                         refreshPushProvider++

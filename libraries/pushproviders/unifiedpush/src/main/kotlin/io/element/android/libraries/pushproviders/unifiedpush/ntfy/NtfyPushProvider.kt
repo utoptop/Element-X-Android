@@ -43,6 +43,9 @@ class NtfyPushProvider(
         Timber.tag(loggerTag.value).d("Registering session ${matrixClient.sessionId} with embedded ntfy")
         val sessionId = matrixClient.sessionId
 
+        val oldEndpoint = ntfyStore.getEndpoint(sessionId)
+        val oldGateway = ntfyStore.getGateway(sessionId) ?: defaultPushGatewayHttpUrlProvider.provide()
+
         var topic = ntfyStore.getTopic(sessionId)
         if (topic.isNullOrEmpty()) {
             topic = "up" + UUID.randomUUID().toString().replace("-", "").take(16)
@@ -51,15 +54,23 @@ class NtfyPushProvider(
 
         val serverUrl = ntfyStore.getServerUrl().trim().trimEnd('/')
         val endpointUrl = "$serverUrl/$topic?up=1"
-        ntfyStore.setEndpoint(sessionId, endpointUrl)
-
         val gateway = defaultPushGatewayHttpUrlProvider.provide()
+
+        if (oldEndpoint != null && oldEndpoint != endpointUrl) {
+            Timber.tag(loggerTag.value).i("Push endpoint changed from $oldEndpoint to $endpointUrl, unregistering old pusher")
+            pusherSubscriber.unregisterPusher(matrixClient, oldEndpoint, oldGateway)
+        }
+
+        ntfyStore.setEndpoint(sessionId, endpointUrl)
         ntfyStore.setGateway(sessionId, gateway)
 
         val registerResult = pusherSubscriber.registerPusher(matrixClient, endpointUrl, gateway)
+
+        ntfySubscriber.subscribe(topic, sessionId)
+        ntfySubscriber.restart()
+
         return registerResult
             .onSuccess {
-                ntfySubscriber.subscribe(topic, sessionId)
                 Timber.tag(loggerTag.value).i("Successfully registered pusher for topic $topic with gateway $gateway")
             }
             .onFailure {
@@ -118,6 +129,7 @@ class NtfyPushProvider(
     override fun canRotateToken(): Boolean = true
 
     override suspend fun rotateToken(): Result<Unit> {
+        ntfySubscriber.restart()
         return Result.success(Unit)
     }
 }

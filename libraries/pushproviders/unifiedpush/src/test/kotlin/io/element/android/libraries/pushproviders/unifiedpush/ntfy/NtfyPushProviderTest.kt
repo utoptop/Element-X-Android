@@ -87,6 +87,45 @@ class NtfyPushProviderTest {
         assertThat(provider.getCurrentDistributorValue(A_SESSION_ID)).isNull()
     }
 
+    @Test
+    fun `changing server URL unregisters old pusher and registers new pusher`() = runTest {
+        val store = FakeNtfyStore()
+        val subscriber = FakeNtfySubscriber()
+        var unregisteredPushKey: String? = null
+        var registeredPushKey: String? = null
+        val pusherSubscriber = object : PusherSubscriber {
+            override suspend fun registerPusher(matrixClient: MatrixClient, pushKey: String, gateway: String): Result<Unit> {
+                registeredPushKey = pushKey
+                return Result.success(Unit)
+            }
+
+            override suspend fun unregisterPusher(matrixClient: MatrixClient, pushKey: String, gateway: String): Result<Unit> {
+                unregisteredPushKey = pushKey
+                return Result.success(Unit)
+            }
+        }
+        val provider = createNtfyPushProvider(
+            ntfyStore = store,
+            ntfySubscriber = subscriber,
+            pusherSubscriber = pusherSubscriber,
+        )
+        val matrixClient = FakeMatrixClient(sessionId = A_SESSION_ID)
+
+        val regResult1 = provider.registerWith(matrixClient, Distributor(NtfyConfig.DISTRIBUTOR_VALUE, NtfyConfig.DISTRIBUTOR_NAME))
+        assertThat(regResult1.isSuccess).isTrue()
+        assertThat(registeredPushKey).startsWith("https://ntfy.sh/up")
+        val oldPushKey = registeredPushKey
+        assertThat(subscriber.restartCalled).isTrue()
+
+        subscriber.restartCalled = false
+        store.setServerUrl("https://custom.ntfy.org")
+        val regResult2 = provider.registerWith(matrixClient, Distributor(NtfyConfig.DISTRIBUTOR_VALUE, NtfyConfig.DISTRIBUTOR_NAME))
+        assertThat(regResult2.isSuccess).isTrue()
+        assertThat(unregisteredPushKey).isEqualTo(oldPushKey)
+        assertThat(registeredPushKey).startsWith("https://custom.ntfy.org/up")
+        assertThat(subscriber.restartCalled).isTrue()
+    }
+
     private fun createNtfyPushProvider(
         ntfyStore: NtfyStore = FakeNtfyStore(),
         ntfySubscriber: NtfySubscriber = FakeNtfySubscriber(),
