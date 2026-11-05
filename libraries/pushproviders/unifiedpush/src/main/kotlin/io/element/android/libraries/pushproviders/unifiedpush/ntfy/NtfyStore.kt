@@ -40,11 +40,12 @@ class SharedPreferencesNtfyStore(
 
     override fun getServerUrl(): String {
         return sharedPreferences.getString(PREFS_SERVER_URL, NtfyConfig.DEFAULT_SERVER_URL)
+            ?.filter { it.code in 33..126 }
             ?.takeIf { it.isNotBlank() } ?: NtfyConfig.DEFAULT_SERVER_URL
     }
 
     override suspend fun setServerUrl(url: String) {
-        val sanitized = url.trim().trimEnd('/')
+        val sanitized = url.filter { it.code in 33..126 }.trimEnd('/')
         sharedPreferences.edit {
             putString(PREFS_SERVER_URL, sanitized)
         }

@@ -472,15 +472,17 @@ private fun NtfySettingsDialog(
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
     val isValidServerUrl = remember(serverUrl) {
-        val trimmed = serverUrl.trim()
-        trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)
+        val clean = serverUrl.filter { it.code in 33..126 }
+        (clean.startsWith("http://", ignoreCase = true) || clean.startsWith("https://", ignoreCase = true)) &&
+            clean.length > 8 &&
+            clean.substringAfter("://").contains(".")
     }
 
     ListDialog(
         title = stringResource(id = R.string.screen_advanced_settings_ntfy_title),
         subtitle = stringResource(id = R.string.screen_advanced_settings_ntfy_dialog_description),
         onSubmit = {
-            onSave(serverUrl.trim(), username.trim(), password)
+            onSave(serverUrl.filter { it.code in 33..126 }.trimEnd('/'), username.trim(), password)
         },
         onDismissRequest = onDismiss,
         enabled = isValidServerUrl,
@@ -490,7 +492,7 @@ private fun NtfySettingsDialog(
         item {
             TextField(
                 value = serverUrl,
-                onValueChange = { serverUrl = it },
+                onValueChange = { serverUrl = it.filter { char -> char.code in 33..126 } },
                 label = stringResource(id = R.string.screen_advanced_settings_ntfy_server_url),
                 placeholder = stringResource(id = R.string.screen_advanced_settings_ntfy_server_url_hint),
                 validity = if (isValidServerUrl) TextFieldValidity.None else TextFieldValidity.Invalid,
