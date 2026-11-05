@@ -358,6 +358,31 @@ class DefaultPushServiceTest {
     }
 
     @Test
+    fun `ensurePusher - when push provider is ntfy and account is not verified - pusher is registered`() = runTest {
+        val lambda = lambdaRecorder<MatrixClient, Distributor, Result<Unit>> { _, _ ->
+            Result.success(Unit)
+        }
+        val sessionVerificationService = FakeSessionVerificationService(
+            initialSessionVerifiedStatus = SessionVerifiedStatus.NotVerified
+        )
+        val ntfyPushProvider = FakePushProvider(
+            name = "ntfy",
+            distributors = listOf(Distributor("aValue", "aName")),
+            registerWithResult = lambda,
+        )
+        val pushService = createDefaultPushService(
+            pushProviders = setOf(ntfyPushProvider),
+            getCurrentPushProvider = FakeGetCurrentPushProvider(currentPushProvider = "ntfy"),
+        )
+        val matrixClient = FakeMatrixClient(
+            sessionVerificationService = sessionVerificationService,
+        )
+        val result = pushService.ensurePusherIsRegistered(matrixClient)
+        assertThat(result.isSuccess).isTrue()
+        lambda.assertions().isCalledOnce()
+    }
+
+    @Test
     fun `ensurePusher - case two push providers but first one does not have distributor - second one will be used`() = runTest {
         val lambda = lambdaRecorder<MatrixClient, Distributor, Result<Unit>> { _, _ ->
             Result.success(Unit)

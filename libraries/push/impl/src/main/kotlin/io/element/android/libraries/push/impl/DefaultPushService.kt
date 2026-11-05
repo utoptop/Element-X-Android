@@ -89,13 +89,14 @@ class DefaultPushService(
     }
 
     override suspend fun ensurePusherIsRegistered(matrixClient: MatrixClient): Result<Unit> {
+        val currentPushProvider = getCurrentPushProvider(matrixClient.sessionId)
+        val isNtfy = currentPushProvider?.name == "ntfy"
         val verificationStatus = matrixClient.sessionVerificationService.sessionVerifiedStatus.first()
-        if (verificationStatus != SessionVerifiedStatus.Verified) {
+        if (!isNtfy && verificationStatus != SessionVerifiedStatus.Verified) {
             return Result.failure<Unit>(PusherRegistrationFailure.AccountNotVerified())
                 .also { Timber.w("Account is not verified") }
         }
         Timber.d("Ensure pusher is registered")
-        val currentPushProvider = getCurrentPushProvider(matrixClient.sessionId)
         val result = if (currentPushProvider == null) {
             Timber.d("Register with the first available push provider with at least one distributor")
             val pushProvider = getAvailablePushProviders()

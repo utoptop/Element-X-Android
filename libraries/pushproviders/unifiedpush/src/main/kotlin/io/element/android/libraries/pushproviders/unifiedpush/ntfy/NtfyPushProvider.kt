@@ -43,7 +43,7 @@ class NtfyPushProvider(
         Timber.tag(loggerTag.value).d("Registering session ${matrixClient.sessionId} with embedded ntfy")
         val sessionId = matrixClient.sessionId
 
-        val oldEndpoint = ntfyStore.getEndpoint(sessionId)
+        val oldEndpoint = ntfyStore.getLastRegisteredEndpoint(sessionId)
         val oldGateway = ntfyStore.getGateway(sessionId) ?: defaultPushGatewayHttpUrlProvider.provide()
 
         var topic = ntfyStore.getTopic(sessionId)

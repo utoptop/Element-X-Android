@@ -168,8 +168,15 @@ class NtfyPushProviderTest {
         override fun setTopic(sessionId: SessionId, topic: String?) {
             if (topic == null) topics.remove(sessionId) else topics[sessionId] = topic
         }
-        override fun getEndpoint(sessionId: SessionId): String? = endpoints[sessionId]
+        override fun getEndpoint(sessionId: SessionId): String? {
+            val topic = topics[sessionId] ?: return null
+            return "${getServerUrl()}/$topic?up=1"
+        }
         override fun setEndpoint(sessionId: SessionId, endpoint: String?) {
+            setLastRegisteredEndpoint(sessionId, endpoint)
+        }
+        override fun getLastRegisteredEndpoint(sessionId: SessionId): String? = endpoints[sessionId]
+        override fun setLastRegisteredEndpoint(sessionId: SessionId, endpoint: String?) {
             if (endpoint == null) endpoints.remove(sessionId) else endpoints[sessionId] = endpoint
         }
         override fun getGateway(sessionId: SessionId): String? = gateways[sessionId]

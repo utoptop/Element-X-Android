@@ -23,6 +23,8 @@ interface NtfyStore : ConfigurableServerPushProvider {
     fun setTopic(sessionId: SessionId, topic: String?)
     fun getEndpoint(sessionId: SessionId): String?
     fun setEndpoint(sessionId: SessionId, endpoint: String?)
+    fun getLastRegisteredEndpoint(sessionId: SessionId): String?
+    fun setLastRegisteredEndpoint(sessionId: SessionId, endpoint: String?)
     fun getGateway(sessionId: SessionId): String?
     fun setGateway(sessionId: SessionId, gateway: String?)
     fun getAllTopics(): Map<String, SessionId>
@@ -86,15 +88,26 @@ class SharedPreferencesNtfyStore(
     }
 
     override fun getEndpoint(sessionId: SessionId): String? {
-        return sharedPreferences.getString(PREFS_ENDPOINT_PREFIX + sessionId.value, null)
+        val topic = getTopic(sessionId) ?: return null
+        val serverUrl = getServerUrl().trim().trimEnd('/')
+        return "$serverUrl/$topic?up=1"
     }
 
     override fun setEndpoint(sessionId: SessionId, endpoint: String?) {
+        setLastRegisteredEndpoint(sessionId, endpoint)
+    }
+
+    override fun getLastRegisteredEndpoint(sessionId: SessionId): String? {
+        return sharedPreferences.getString(PREFS_ENDPOINT_PREFIX + sessionId.value, null)
+            ?.filter { it.code in 33..126 }
+    }
+
+    override fun setLastRegisteredEndpoint(sessionId: SessionId, endpoint: String?) {
         sharedPreferences.edit {
             if (endpoint == null) {
                 remove(PREFS_ENDPOINT_PREFIX + sessionId.value)
             } else {
-                putString(PREFS_ENDPOINT_PREFIX + sessionId.value, endpoint)
+                putString(PREFS_ENDPOINT_PREFIX + sessionId.value, endpoint.filter { it.code in 33..126 })
             }
         }
     }
