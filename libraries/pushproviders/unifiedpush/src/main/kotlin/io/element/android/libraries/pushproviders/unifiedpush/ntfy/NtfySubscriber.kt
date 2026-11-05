@@ -283,10 +283,10 @@ class DefaultNtfySubscriber(
                     rawMessage.toByteArray(Charsets.UTF_8)
                 }
 
-                coroutineScope.launch(dispatchers.computation) {
+                coroutineScope.launch(dispatchers.io) {
                     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
                     val wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "elementx:ntfy_push_wake")
-                    wakeLock?.acquire(10_000L)
+                    wakeLock?.acquire(30_000L)
                     try {
                         val clientSecret = pushClientSecret.getSecretForUser(sessionId)
                         val pushData = pushParser.parse(payloadBytes, clientSecret)

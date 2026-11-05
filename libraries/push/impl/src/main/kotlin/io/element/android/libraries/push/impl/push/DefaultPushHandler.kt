@@ -19,6 +19,7 @@ import io.element.android.libraries.push.impl.history.PushHistoryService
 import io.element.android.libraries.push.impl.history.onDiagnosticPush
 import io.element.android.libraries.push.impl.history.onInvalidPushReceived
 import io.element.android.libraries.push.impl.history.onUnableToRetrieveSession
+import io.element.android.libraries.push.impl.notifications.NotifiableEventResolver
 import io.element.android.libraries.push.impl.notifications.NotificationResultProcessor
 import io.element.android.libraries.push.impl.test.DefaultTestPush
 import io.element.android.libraries.push.impl.troubleshoot.DiagnosticPushHandler
@@ -38,6 +39,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 private val loggerTag = LoggerTag("PushHandler", LoggerTag.PushLoggerTag)
 
@@ -54,8 +57,9 @@ class DefaultPushHandler(
     private val systemClock: SystemClock,
     private val workManagerScheduler: WorkManagerScheduler,
     private val syncPendingNotificationsRequestFactory: SyncPendingNotificationsRequestBuilder.Factory,
-    resultProcessor: NotificationResultProcessor,
+    private val resultProcessor: NotificationResultProcessor,
     private val dispatchers: CoroutineDispatchers,
+    private val eventResolver: NotifiableEventResolver,
 ) : PushHandler {
     init {
         resultProcessor.start()
@@ -144,8 +148,40 @@ class DefaultPushHandler(
             pushHistoryService.insertOrUpdatePushRequest(pushRequest)
             Timber.d("Queueing notification finished")
 
-            if (!workManagerScheduler.hasPendingWork(userId, WorkManagerRequestType.NOTIFICATION_SYNC)) {
-                Timber.d("No pending worker for push notifications found")
+            // Attempt immediate in-process resolution while the process and wakelock are active.
+            // On non-GMS devices (especially Chinese OEM ROMs using ntfy), WorkManager / JobScheduler tasks
+            // scheduled from the background are deferred or suppressed by OEM battery managers until the user manually opens the app.
+            var resolvedImmediately = false
+            try {
+                val fetchSince = Instant.fromEpochMilliseconds(systemClock.epochMillis()).minus(1.days)
+                val pendingRequests = pushHistoryService.getPendingPushRequests(userId, fetchSince).getOrNull() ?: listOf(pushRequest)
+                val requestsToResolve = if (pendingRequests.none { it.eventId == pushRequest.eventId }) {
+                    pendingRequests + pushRequest
+                } else {
+                    pendingRequests
+                }
+
+                Timber.tag(loggerTag.value).d("Attempting immediate in-process resolution for ${requestsToResolve.size} push request(s)")
+                val results = eventResolver.resolveEvents(userId, requestsToResolve).getOrNull()
+                if (results != null) {
+                    resultProcessor.emit(results)
+                    val updatedRequests = mutableListOf<PushRequest>()
+                    for ((req, res) in results) {
+                        res.fold(
+                            onSuccess = { updatedRequests.add(req.copy(status = PushRequestStatus.SUCCESS.value)) },
+                            onFailure = { updatedRequests.add(req.copy(status = PushRequestStatus.FAILED.value)) }
+                        )
+                    }
+                    pushHistoryService.insertOrUpdatePushRequests(updatedRequests)
+                    resolvedImmediately = results[pushRequest]?.isSuccess == true
+                    Timber.tag(loggerTag.value).i("Immediate in-process resolution result for current push: $resolvedImmediately")
+                }
+            } catch (t: Throwable) {
+                Timber.tag(loggerTag.value).w(t, "Immediate in-process notification resolution failed, falling back to WorkManager")
+            }
+
+            if (!resolvedImmediately && !workManagerScheduler.hasPendingWork(userId, WorkManagerRequestType.NOTIFICATION_SYNC)) {
+                Timber.d("No pending worker for push notifications found, submitting WorkManager request as fallback")
                 workManagerScheduler.submit(syncPendingNotificationsRequestFactory.create(userId))
             }
 

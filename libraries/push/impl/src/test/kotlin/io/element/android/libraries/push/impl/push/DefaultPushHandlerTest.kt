@@ -24,7 +24,10 @@ import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.push.impl.db.PushRequest
 import io.element.android.libraries.push.impl.history.FakePushHistoryService
 import io.element.android.libraries.push.impl.history.PushHistoryService
+import io.element.android.libraries.push.impl.notifications.FakeNotifiableEventResolver
 import io.element.android.libraries.push.impl.notifications.FakeNotificationResultProcessor
+import io.element.android.libraries.push.impl.notifications.NotifiableEventResolver
+import io.element.android.libraries.push.impl.notifications.model.ResolvedPushEvent
 import io.element.android.libraries.push.impl.test.DefaultTestPush
 import io.element.android.libraries.push.impl.troubleshoot.DiagnosticPushHandler
 import io.element.android.libraries.push.impl.workmanager.FakeSyncPendingNotificationsRequestBuilder
@@ -229,6 +232,7 @@ class DefaultPushHandlerTest {
             start = {},
             stop = {},
         ),
+        eventResolver: NotifiableEventResolver = FakeNotifiableEventResolver { _, _ -> Result.failure(Exception("Test fallback")) },
         dispatchers: CoroutineDispatchers = testCoroutineDispatchers(),
     ): DefaultPushHandler {
         return DefaultPushHandler(
@@ -251,6 +255,47 @@ class DefaultPushHandlerTest {
                 FakeSyncPendingNotificationsRequestBuilder()
             },
             dispatchers = dispatchers,
+            eventResolver = eventResolver,
         )
+    }
+
+    @Test
+    fun `when classical PushData is received and immediate resolution succeeds, work is not scheduled`() = runTest {
+        val aPushData = PushData(
+            eventId = AN_EVENT_ID,
+            roomId = A_ROOM_ID,
+            unread = 0,
+            clientSecret = A_SECRET,
+        )
+
+        val submitWorkLambda = lambdaRecorder<WorkManagerRequestBuilder, Unit> {}
+        val workManagerScheduler = FakeWorkManagerScheduler(submitLambda = submitWorkLambda)
+        val emitLambda = lambdaRecorder<Map<PushRequest, Result<ResolvedPushEvent>>, Unit> {}
+        val resultProcessor = FakeNotificationResultProcessor(emit = emitLambda, start = {}, stop = {})
+        val eventResolver = FakeNotifiableEventResolver { _, requests ->
+            Result.success(requests.associateWith { Result.success(ResolvedPushEvent.Redaction(A_USER_ID, A_ROOM_ID, AN_EVENT_ID, null)) })
+        }
+
+        val pushHistoryService = FakePushHistoryService(
+            enqueuePushRequest = { Result.success(Unit) },
+            replacePushRequests = { Result.success(Unit) },
+            getPendingPushRequests = { _, _ -> Result.success(emptyList()) },
+        )
+        val defaultPushHandler = createDefaultPushHandler(
+            pushClientSecret = FakePushClientSecret(
+                getUserIdFromSecretResult = { A_USER_ID }
+            ),
+            incrementPushCounterResult = {},
+            pushHistoryService = pushHistoryService,
+            workManagerScheduler = workManagerScheduler,
+            resultProcessor = resultProcessor,
+            eventResolver = eventResolver,
+        )
+        defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
+
+        advanceTimeBy(300.milliseconds)
+
+        emitLambda.assertions().isCalledOnce()
+        submitWorkLambda.assertions().isNeverCalled()
     }
 }

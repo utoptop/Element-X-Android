@@ -22,4 +22,12 @@ class FakeBatteryOptimization(
     override fun requestDisablingBatteryOptimization(): Boolean {
         return requestDisablingBatteryOptimizationResult()
     }
+
+    override fun isAccessibilityServiceEnabled(): Boolean {
+        return false
+    }
+
+    override fun openAccessibilitySettings(): Boolean {
+        return false
+    }
 }
