@@ -46,4 +46,14 @@ interface ConfigurableServerPushProvider {
      * Updates the password.
      */
     suspend fun setPassword(password: String?)
+
+    /**
+     * Whether the background keep-alive foreground service is enabled.
+     */
+    fun isKeepAliveEnabled(): Boolean = true
+
+    /**
+     * Sets whether the background keep-alive foreground service is enabled.
+     */
+    suspend fun setKeepAliveEnabled(enabled: Boolean) {}
 }

@@ -21,7 +21,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import io.element.android.libraries.architecture.bindings
-import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.designsystem.utils.CommonDrawables
 import timber.log.Timber
@@ -31,7 +30,6 @@ import timber.log.Timber
  * and avoids being killed by aggressive battery optimizations on devices like Motorola, Xiaomi, etc.
  */
 class NtfyKeepAliveService : Service() {
-
     private var isOnForeground = false
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -44,9 +42,16 @@ class NtfyKeepAliveService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isOnForeground) {
+            startInForeground()
+        }
+        if (!isOnForeground) {
             Timber.w("NtfyKeepAliveService is not running in foreground, stopping it to avoid crash")
             stopSelf()
             return START_NOT_STICKY
+        }
+        runCatchingExceptions {
+            val bindings = bindings<NtfyBindings>()
+            bindings.ntfySubscriber().restart()
         }
         return START_STICKY
     }
@@ -66,27 +71,28 @@ class NtfyKeepAliveService : Service() {
                 PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
             )
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val canScheduleExact = alarmManager?.canScheduleExactAlarms() == true
-                if (canScheduleExact) {
-                    alarmManager?.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        System.currentTimeMillis() + 1000,
-                        pendingIntent
-                    )
+            alarmManager?.let { am ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (am.canScheduleExactAlarms()) {
+                        am.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + 1000,
+                            pendingIntent
+                        )
+                    } else {
+                        am.setAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis() + 1000,
+                            pendingIntent
+                        )
+                    }
                 } else {
-                    alarmManager?.setAndAllowWhileIdle(
+                    am.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
                         System.currentTimeMillis() + 1000,
                         pendingIntent
                     )
                 }
-            } else {
-                alarmManager?.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    System.currentTimeMillis() + 1000,
-                    pendingIntent
-                )
             }
         } catch (e: Exception) {
             Timber.e(e, "Failed to schedule restart on task removed")

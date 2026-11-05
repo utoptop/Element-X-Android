@@ -133,6 +133,21 @@ class SharedPreferencesNtfyStore(
         }
     }
 
+    override fun isKeepAliveEnabled(): Boolean {
+        return sharedPreferences.getBoolean(PREFS_KEEP_ALIVE_ENABLED, true)
+    }
+
+    override suspend fun setKeepAliveEnabled(enabled: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(PREFS_KEEP_ALIVE_ENABLED, enabled)
+        }
+        if (enabled) {
+            NtfyKeepAliveService.start(context)
+        } else {
+            NtfyKeepAliveService.stop(context)
+        }
+    }
+
     companion object {
         private const val PREFS_SERVER_URL = "ntfy_server_url"
         private const val PREFS_USERNAME = "ntfy_username"
@@ -140,5 +155,6 @@ class SharedPreferencesNtfyStore(
         private const val PREFS_TOPIC_PREFIX = "ntfy_topic_"
         private const val PREFS_ENDPOINT_PREFIX = "ntfy_endpoint_"
         private const val PREFS_GATEWAY_PREFIX = "ntfy_gateway_"
+        private const val PREFS_KEEP_ALIVE_ENABLED = "ntfy_keepalive_enabled"
     }
 }

@@ -17,4 +17,8 @@
     <string name="dialog_accessibility_keepalive_title">Background Protection &amp; Auto-Restart</string>
     <string name="dialog_accessibility_keepalive_content">【Lock app in Recent Apps (Recommended)】\nOpen the multitasking/recent apps screen, long press or tap the lock icon on the Element X card. When locked, clearing all background apps will not kill Element X.\n\n【Accessibility Keep-Alive Service】\nWhen enabled in System Accessibility settings, Android\'s system_server automatically guards this service. Even if the process is swiped away from recent tasks or killed by the system, Android will automatically respawn the push service within 1 second.\n(Note: This service is only used for push persistence and does not collect or inspect any screen content or personal data).\n\nOpen System Accessibility Settings now?</string>
     <string name="dialog_accessibility_keepalive_submit">Go to Accessibility Settings</string>
+    <string name="screen_advanced_settings_ntfy_keepalive_title">Persistent background push service</string>
+    <string name="screen_advanced_settings_ntfy_keepalive_description">Keeps a low-power ongoing notification to prevent the system from freezing network or killing the app in the background</string>
+    <string name="screen_advanced_settings_system_floating_notification_title">Floating &amp; banner notifications</string>
+    <string name="screen_advanced_settings_system_floating_notification_description">Open system settings to allow floating banner notifications in the background</string>
 </resources>

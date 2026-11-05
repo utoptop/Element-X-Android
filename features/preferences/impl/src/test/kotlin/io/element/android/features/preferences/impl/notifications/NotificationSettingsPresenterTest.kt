@@ -16,7 +16,6 @@ import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
-import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.FakeMatrixClient
@@ -26,14 +25,13 @@ import io.element.android.libraries.preferences.api.store.NotificationSound
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.push.api.PushService
 import io.element.android.libraries.push.api.battery.BatteryOptimization
-import io.element.android.libraries.push.test.battery.FakeBatteryOptimization
 import io.element.android.libraries.push.api.notifications.NotificationSoundUpdater
 import io.element.android.libraries.push.api.notifications.sound.NotificationSoundCopier
 import io.element.android.libraries.push.test.FakePushService
+import io.element.android.libraries.push.test.battery.FakeBatteryOptimization
 import io.element.android.libraries.push.test.notifications.FakeNotificationSoundUpdater
 import io.element.android.libraries.push.test.notifications.FakeSoundDisplayNameResolver
 import io.element.android.libraries.push.test.notifications.sound.FakeNotificationSoundCopier
-import io.element.android.libraries.pushproviders.api.Config
 import io.element.android.libraries.pushproviders.api.ConfigurableServerPushProvider
 import io.element.android.libraries.pushproviders.api.Distributor
 import io.element.android.libraries.pushproviders.api.PushProvider

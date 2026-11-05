@@ -53,6 +53,7 @@ data class NotificationSettingsState(
     val isIgnoringBatteryOptimizations: Boolean,
     val isAccessibilityKeepAliveEnabled: Boolean,
     val showAccessibilityKeepAliveDialog: Boolean,
+    val isNtfyKeepAliveEnabled: Boolean = true,
     val eventSink: (NotificationSettingsEvent) -> Unit,
 ) {
     sealed interface MatrixSettings {

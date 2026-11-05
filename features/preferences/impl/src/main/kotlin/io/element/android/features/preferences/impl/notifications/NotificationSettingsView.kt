@@ -315,6 +315,7 @@ private fun TroubleshootCategory(
 private fun AdvancedSettingsCategory(
     state: NotificationSettingsState,
 ) {
+    val context = LocalContext.current
     PreferenceCategory(title = stringResource(id = CommonStrings.common_advanced_settings)) {
         ListItem(
             content = {
@@ -367,7 +368,32 @@ private fun AdvancedSettingsCategory(
                     state.eventSink(NotificationSettingsEvent.ShowNtfySettingsDialog)
                 }
             )
+            ListItem(
+                content = {
+                    Text(text = stringResource(id = R.string.screen_advanced_settings_ntfy_keepalive_title))
+                },
+                supportingContent = {
+                    Text(text = stringResource(id = R.string.screen_advanced_settings_ntfy_keepalive_description))
+                },
+                trailingContent = ListItemContent.Switch(
+                    checked = state.isNtfyKeepAliveEnabled,
+                ),
+                onClick = {
+                    state.eventSink(NotificationSettingsEvent.SetNtfyKeepAliveEnabled(!state.isNtfyKeepAliveEnabled))
+                }
+            )
         }
+        ListItem(
+            content = {
+                Text(text = stringResource(id = R.string.screen_advanced_settings_system_floating_notification_title))
+            },
+            supportingContent = {
+                Text(text = stringResource(id = R.string.screen_advanced_settings_system_floating_notification_description))
+            },
+            onClick = {
+                context.startNotificationSettingsIntent()
+            }
+        )
         ListItem(
             content = {
                 Text(text = stringResource(id = R.string.screen_advanced_settings_battery_optimization_title))

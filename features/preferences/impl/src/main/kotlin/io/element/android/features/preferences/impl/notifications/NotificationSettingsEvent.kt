@@ -41,6 +41,7 @@ sealed interface NotificationSettingsEvent {
     data object ShowAccessibilityKeepAliveDialog : NotificationSettingsEvent
     data object DismissAccessibilityKeepAliveDialog : NotificationSettingsEvent
     data object OpenAccessibilitySettings : NotificationSettingsEvent
+    data class SetNtfyKeepAliveEnabled(val enabled: Boolean) : NotificationSettingsEvent
     data class SaveNtfySettings(
         val serverUrl: String,
         val username: String?,

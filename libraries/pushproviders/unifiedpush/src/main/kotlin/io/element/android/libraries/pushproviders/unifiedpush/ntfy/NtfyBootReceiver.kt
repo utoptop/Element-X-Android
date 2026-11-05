@@ -43,6 +43,9 @@ class NtfyBootReceiver : BroadcastReceiver() {
                         if (topics.isNotEmpty()) {
                             Timber.i("Restoring NtfySubscriber on action: $action")
                             bindings.ntfySubscriber().restart()
+                            if (store.isKeepAliveEnabled()) {
+                                NtfyKeepAliveService.start(context)
+                            }
                             true
                         } else {
                             false

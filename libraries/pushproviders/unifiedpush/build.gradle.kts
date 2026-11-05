@@ -33,6 +33,7 @@ dependencies {
     implementation(projects.libraries.core)
     implementation(projects.libraries.designsystem)
     implementation(libs.androidx.corektx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(projects.services.toolbox.api)
 
     implementation(projects.libraries.network)

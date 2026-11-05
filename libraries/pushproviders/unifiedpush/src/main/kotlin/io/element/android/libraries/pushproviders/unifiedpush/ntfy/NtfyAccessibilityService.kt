@@ -26,7 +26,6 @@ import timber.log.Timber
  * keeps the process alive and automatically relaunches it even if swiped from Recent Tasks.
  */
 class NtfyAccessibilityService : AccessibilityService() {
-
     override fun onServiceConnected() {
         super.onServiceConnected()
         Timber.i("NtfyAccessibilityService connected: OS-level keep-alive active")

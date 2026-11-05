@@ -166,6 +166,9 @@ class NotificationSettingsPresenter(
         val ntfyPasswordState = remember {
             mutableStateOf(configurablePushProvider.getPassword())
         }
+        val ntfyKeepAliveState = remember {
+            mutableStateOf(configurablePushProvider.isKeepAliveEnabled())
+        }
         val showNtfySettingsDialogState = remember { mutableStateOf(false) }
 
         val messageSound by remember { appPreferencesStore.getMessageSoundFlow() }.collectAsState(initial = NotificationSound.SystemDefault)
@@ -372,6 +375,12 @@ class NotificationSettingsPresenter(
                         refreshPushProvider++
                     }
                 }
+                is NotificationSettingsEvent.SetNtfyKeepAliveEnabled -> {
+                    localCoroutineScope.launch {
+                        configurablePushProvider.setKeepAliveEnabled(event.enabled)
+                        ntfyKeepAliveState.value = event.enabled
+                    }
+                }
             }
         }
 
@@ -408,6 +417,7 @@ class NotificationSettingsPresenter(
             isIgnoringBatteryOptimizations = isIgnoringBatteryOptimizationsState.value,
             isAccessibilityKeepAliveEnabled = isAccessibilityKeepAliveEnabledState.value,
             showAccessibilityKeepAliveDialog = showAccessibilityKeepAliveDialogState.value,
+            isNtfyKeepAliveEnabled = ntfyKeepAliveState.value,
             eventSink = ::handleEvent,
         )
     }

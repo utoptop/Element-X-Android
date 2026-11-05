@@ -10,12 +10,17 @@ package io.element.android.libraries.pushproviders.unifiedpush.ntfy
 import android.content.Context
 import android.os.PowerManager
 import android.util.Base64
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.androidutils.json.JsonProvider
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.data.tryOrNull
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.di.annotations.ApplicationContext
@@ -92,6 +97,17 @@ class DefaultNtfySubscriber(
     }
 
     init {
+        // Observe app foreground transitions using ProcessLifecycleOwner to safely start keep-alive service
+        runCatchingExceptions {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+                override fun onStart(owner: LifecycleOwner) {
+                    if (ntfyStore.isKeepAliveEnabled() && activeTopics.isNotEmpty()) {
+                        NtfyKeepAliveService.start(context)
+                    }
+                }
+            })
+        }
+
         // Restore existing topics and connect asynchronously off the main thread
         coroutineScope.launch(dispatchers.io) {
             val storedTopics = ntfyStore.getAllTopics()
@@ -172,6 +188,10 @@ class DefaultNtfySubscriber(
         if (webSocket != null) {
             Timber.tag(loggerTag.value).d("WebSocket already active, skipping duplicate connect")
             return
+        }
+
+        if (ntfyStore.isKeepAliveEnabled()) {
+            tryStartKeepAliveService()
         }
 
         val serverUrl = ntfyStore.getServerUrl().trim().trimEnd('/')
@@ -303,6 +323,17 @@ class DefaultNtfySubscriber(
             delay(reconnectDelayMs)
             reconnectDelayMs = min(reconnectDelayMs * 2, 30_000L)
             connect()
+        }
+    }
+
+    private fun tryStartKeepAliveService() {
+        runCatchingExceptions {
+            val isForeground = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            if (isForeground) {
+                NtfyKeepAliveService.start(context)
+            }
+        }.onFailure {
+            Timber.tag(loggerTag.value).d("Cannot start keep alive service: ${it.message}")
         }
     }
 }
