@@ -11,6 +11,6 @@ object NtfyConfig {
     const val NAME = "ntfy"
     const val INDEX = -1
     const val DISTRIBUTOR_VALUE = "io.element.android.ntfy.embedded"
-    const val DISTRIBUTOR_NAME = "内置 ntfy (推荐)"
+    const val DISTRIBUTOR_NAME = "Embedded ntfy (Recommended)"
     const val DEFAULT_SERVER_URL = "https://ntfy.sh"
 }

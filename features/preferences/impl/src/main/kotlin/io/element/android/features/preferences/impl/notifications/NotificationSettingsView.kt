@@ -333,9 +333,15 @@ private fun AdvancedSettingsCategory(
                 is AsyncData.Failure -> ListItemContent.Text(
                     stringResource(id = CommonStrings.common_error)
                 )
-                is AsyncData.Success -> ListItemContent.Text(
-                    state.currentPushDistributor.dataOrNull()?.name ?: ""
-                )
+                is AsyncData.Success -> {
+                    val dist = state.currentPushDistributor.dataOrNull()
+                    val title = if (dist?.value == "io.element.android.ntfy.embedded") {
+                        stringResource(id = R.string.ntfy_distributor_name)
+                    } else {
+                        dist?.name.orEmpty()
+                    }
+                    ListItemContent.Text(title)
+                }
             },
             onClick = {
                 if (state.currentPushDistributor.isReady()) {
@@ -399,8 +405,9 @@ private fun AdvancedSettingsCategory(
         SingleSelectionDialog(
             title = stringResource(id = R.string.screen_advanced_settings_choose_distributor_dialog_title_android),
             options = state.availablePushDistributors.map { distributor ->
-                // If there are several distributors with the same name, use the full name
-                val title = if (state.availablePushDistributors.count { it.name == distributor.name } > 1) {
+                val title = if (distributor.value == "io.element.android.ntfy.embedded") {
+                    stringResource(id = R.string.ntfy_distributor_name)
+                } else if (state.availablePushDistributors.count { it.name == distributor.name } > 1) {
                     distributor.fullName
                 } else {
                     distributor.name

@@ -87,8 +87,8 @@ class NtfyKeepAliveService : Service() {
 
     private fun ensureNotificationChannelExists() {
         val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-            .setName("Element X 推送服务")
-            .setDescription("维持内置 ntfy 消息推送连接在后台持续稳定运行")
+            .setName(getString(io.element.android.libraries.pushproviders.unifiedpush.R.string.ntfy_service_channel_name))
+            .setDescription(getString(io.element.android.libraries.pushproviders.unifiedpush.R.string.ntfy_service_channel_description))
             .setSound(null, null)
             .setVibrationEnabled(false)
             .setShowBadge(false)
@@ -99,8 +99,8 @@ class NtfyKeepAliveService : Service() {
     private fun startInForeground() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(CommonDrawables.ic_notification)
-            .setContentTitle("Element X 实时推送")
-            .setContentText("内置 ntfy 推送服务正在后台运行")
+            .setContentTitle(getString(io.element.android.libraries.pushproviders.unifiedpush.R.string.ntfy_service_notification_title))
+            .setContentText(getString(io.element.android.libraries.pushproviders.unifiedpush.R.string.ntfy_service_notification_content))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)

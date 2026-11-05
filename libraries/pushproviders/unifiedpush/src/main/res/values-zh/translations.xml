@@ -6,6 +6,11 @@
     <item quantity="other">"找到 %1$d 个分发器：%2$s"</item>
   </plurals>
   <string name="troubleshoot_notifications_test_unified_push_title">"检查 UnifiedPush"</string>
+  <string name="ntfy_distributor_name">"内置 ntfy (推荐)"</string>
   <string name="ntfy_accessibility_service_name">"Element X 推送保活服务"</string>
   <string name="ntfy_accessibility_service_description">"用于维持 Element X 后台消息推送长连接。即使划掉后台任务卡片，系统也会自动恢复推送，保证消息实时到达。本服务不读取任何屏幕内容与个人隐私。"</string>
+  <string name="ntfy_service_channel_name">"Element X 推送服务"</string>
+  <string name="ntfy_service_channel_description">"维持内置 ntfy 消息推送连接在后台持续稳定运行"</string>
+  <string name="ntfy_service_notification_title">"Element X 实时推送"</string>
+  <string name="ntfy_service_notification_content">"内置 ntfy 推送服务正在后台运行"</string>
 </resources>

@@ -1,0 +1,122 @@
+name: Upstream Sync & Auto Release
+
+on:
+  schedule:
+    # Runs daily at 03:00 UTC (11:00 AM CST)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build and release APKs regardless of upstream changes'
+        type: boolean
+        required: false
+        default: false
+      upstream_branch:
+        description: 'Upstream branch to track and sync'
+        type: string
+        required: false
+        default: 'develop'
+
+permissions:
+  contents: write
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
+  CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-daemon -Dsonar.gradle.skipCompile=true --no-configuration-cache
+
+jobs:
+  sync-and-release:
+    name: Sync Upstream & Build APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch Upstream
+        run: |
+          git remote add upstream https://github.com/element-hq/element-x-android.git || true
+          git fetch upstream ${{ inputs.upstream_branch || 'develop' }} --tags
+
+      - name: Check for Upstream Updates
+        id: check_upstream
+        run: |
+          UPSTREAM_REF="upstream/${{ inputs.upstream_branch || 'develop' }}"
+          UPSTREAM_HEAD=$(git rev-parse "$UPSTREAM_REF")
+          MERGE_BASE=$(git merge-base HEAD "$UPSTREAM_REF")
+          echo "Current HEAD: $(git rev-parse HEAD)"
+          echo "Upstream HEAD: $UPSTREAM_HEAD"
+          echo "Merge Base: $MERGE_BASE"
+
+          if [ "$UPSTREAM_HEAD" != "$MERGE_BASE" ]; then
+            echo "New upstream changes detected!"
+            git merge "$UPSTREAM_REF" --no-edit -m "chore: Sync upstream changes from $UPSTREAM_REF"
+            git push origin develop || git push origin HEAD
+            echo "has_new_commits=true" >> $GITHUB_OUTPUT
+          else
+            echo "Fork is up-to-date with upstream."
+            echo "has_new_commits=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine If Build Needed
+        id: should_build
+        run: |
+          if [ "${{ steps.check_upstream.outputs.has_new_commits }}" = "true" ] || [ "${{ inputs.force_build }}" = "true" ]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+          else
+            echo "build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Build Environment
+        if: steps.should_build.outputs.build == 'true'
+        uses: ./.github/actions/setup-build
+        with:
+          free-disk-space: 'true'
+
+      - name: Build Gplay & Fdroid Release APKs
+        if: steps.should_build.outputs.build == 'true'
+        run: |
+          ./gradlew :app:packageGplayRelease :app:packageFdroidRelease $CI_GRADLE_ARG_PROPERTIES
+
+      - name: Prepare Release Artifacts
+        if: steps.should_build.outputs.build == 'true'
+        id: prepare_artifacts
+        run: |
+          mkdir -p release-apks
+          cp app/build/outputs/apk/gplay/release/app-gplay-arm64-v8a-release.apk release-apks/ElementX-Gplay-arm64.apk
+          cp app/build/outputs/apk/gplay/release/app-gplay-universal-release.apk release-apks/ElementX-Gplay-universal.apk
+          cp app/build/outputs/apk/fdroid/release/app-fdroid-arm64-v8a-release.apk release-apks/ElementX-Fdroid-arm64.apk
+          cp app/build/outputs/apk/fdroid/release/app-fdroid-universal-release.apk release-apks/ElementX-Fdroid-universal.apk
+
+          TAG="v$(date +'%Y.%m.%d-%H%M')"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.should_build.outputs.build == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_artifacts.outputs.tag }}
+          name: Element X (ntfy) ${{ steps.prepare_artifacts.outputs.tag }}
+          draft: false
+          prerelease: false
+          body: |
+            ### Element X Android (内置 ntfy 增强版 · 自动化同步构建)
+
+            此版本自动同步自官方上游 [element-hq/element-x-android](https://github.com/element-hq/element-x-android)。
+
+            #### 📦 应用包下载 (APK Downloads)：
+            - **[ElementX-Gplay-arm64.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.prepare_artifacts.outputs.tag }}/ElementX-Gplay-arm64.apk)** (推荐 · ARM64 架构 · 内置 ntfy 默认推送 + GMS 双模)
+            - **[ElementX-Fdroid-arm64.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.prepare_artifacts.outputs.tag }}/ElementX-Fdroid-arm64.apk)** (纯净版 · 100% 无 Google 框架 · 内置 ntfy)
+            - **[ElementX-Gplay-universal.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.prepare_artifacts.outputs.tag }}/ElementX-Gplay-universal.apk)** (通用兼容包)
+            - **[ElementX-Fdroid-universal.apk](https://github.com/${{ github.repository }}/releases/download/${{ steps.prepare_artifacts.outputs.tag }}/ElementX-Fdroid-universal.apk)** (通用纯净包)
+          files: release-apks/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

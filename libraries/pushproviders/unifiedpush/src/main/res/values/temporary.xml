@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="ntfy_distributor_name">Embedded ntfy (Recommended)</string>
     <string name="ntfy_accessibility_service_name">Element X Push Keep-Alive</string>
     <string name="ntfy_accessibility_service_description">Maintains Element X push notification connection in the background so messages are delivered reliably even if the app is cleared from recent tasks. This service does not inspect or collect any screen content or personal data.</string>
+    <string name="ntfy_service_channel_name">Element X Push Service</string>
+    <string name="ntfy_service_channel_description">Maintains embedded ntfy push connection in background</string>
+    <string name="ntfy_service_notification_title">Element X Push Service</string>
+    <string name="ntfy_service_notification_content">Embedded ntfy push service is running in background</string>
 </resources>

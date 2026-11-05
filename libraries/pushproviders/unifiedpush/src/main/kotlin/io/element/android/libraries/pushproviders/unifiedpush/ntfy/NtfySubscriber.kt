@@ -8,6 +8,7 @@
 package io.element.android.libraries.pushproviders.unifiedpush.ntfy
 
 import android.content.Context
+import android.os.PowerManager
 import android.util.Base64
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -78,9 +79,12 @@ class DefaultNtfySubscriber(
     private var reconnectJob: Job? = null
     private var reconnectDelayMs = 1000L
 
+    // Optimized keep-alive: 90s ping interval allows the mobile cellular/Wi-Fi radio
+    // to drop into deep low-power sleep (RRC_IDLE) for ~85% of time, while ntfy server keepalive frames (every 45-60s)
+    // and socket read wake-ups guarantee 0-delay real-time push reception.
     private val wsOkHttpClient by lazy {
         okHttpClient.newBuilder()
-            .pingInterval(30, TimeUnit.SECONDS)
+            .pingInterval(90, TimeUnit.SECONDS)
             .build()
     }
 
@@ -212,22 +216,31 @@ class DefaultNtfySubscriber(
                 }
 
                 coroutineScope.launch(dispatchers.computation) {
-                    val clientSecret = pushClientSecret.getSecretForUser(sessionId)
-                    val pushData = pushParser.parse(payloadBytes, clientSecret)
-                    if (pushData != null) {
-                        fetchPushForegroundServiceManager.start()
-                        try {
-                            Timber.tag(loggerTag.value).d("Delivering push notification to PushHandler")
-                            pushHandler.handle(pushData, providerInfo = "${NtfyConfig.NAME} - $clientSecret")
-                        } finally {
-                            fetchPushForegroundServiceManager.stop()
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    val wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "elementx:ntfy_push_wake")
+                    wakeLock?.acquire(10_000L)
+                    try {
+                        val clientSecret = pushClientSecret.getSecretForUser(sessionId)
+                        val pushData = pushParser.parse(payloadBytes, clientSecret)
+                        if (pushData != null) {
+                            fetchPushForegroundServiceManager.start()
+                            try {
+                                Timber.tag(loggerTag.value).d("Delivering push notification to PushHandler")
+                                pushHandler.handle(pushData, providerInfo = "${NtfyConfig.NAME} - $clientSecret")
+                            } finally {
+                                fetchPushForegroundServiceManager.stop()
+                            }
+                        } else {
+                            Timber.tag(loggerTag.value).w("Failed to parse push payload: $rawMessage")
+                            pushHandler.handleInvalid(
+                                providerInfo = "${NtfyConfig.NAME} - $clientSecret",
+                                data = rawMessage,
+                            )
                         }
-                    } else {
-                        Timber.tag(loggerTag.value).w("Failed to parse push payload: $rawMessage")
-                        pushHandler.handleInvalid(
-                            providerInfo = "${NtfyConfig.NAME} - $clientSecret",
-                            data = rawMessage,
-                        )
+                    } finally {
+                        if (wakeLock?.isHeld == true) {
+                            tryOrNull { wakeLock.release() }
+                        }
                     }
                 }
             }
