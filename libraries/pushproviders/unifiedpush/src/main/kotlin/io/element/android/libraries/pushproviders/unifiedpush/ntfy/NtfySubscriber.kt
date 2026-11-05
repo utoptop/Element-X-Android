@@ -160,7 +160,6 @@ class DefaultNtfySubscriber(
             Timber.tag(loggerTag.value).d("WebSocket already active, skipping duplicate connect")
             return
         }
-        NtfyKeepAliveService.start(context)
 
         val serverUrl = ntfyStore.getServerUrl().trim().trimEnd('/')
         val topics = activeTopics.keys.joinToString(",")
@@ -175,42 +174,51 @@ class DefaultNtfySubscriber(
         Timber.tag(loggerTag.value).i("Connecting to ntfy WebSocket: $wsUrl")
         _connectionStatus.value = NtfyConnectionStatus.CONNECTING
 
-        val requestBuilder = Request.Builder().url(wsUrl)
-        val username = ntfyStore.getUsername()
-        val password = ntfyStore.getPassword()
-        if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
-            requestBuilder.header("Authorization", Credentials.basic(username, password))
+        try {
+            val requestBuilder = Request.Builder().url(wsUrl)
+            val username = ntfyStore.getUsername()
+            val password = ntfyStore.getPassword()
+            if (!username.isNullOrBlank() && !password.isNullOrBlank()) {
+                requestBuilder.header("Authorization", Credentials.basic(username, password))
+            }
+
+            webSocket = wsOkHttpClient.newWebSocket(requestBuilder.build(), object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Timber.tag(loggerTag.value).i("ntfy WebSocket connected!")
+                    _connectionStatus.value = NtfyConnectionStatus.CONNECTED
+                    reconnectDelayMs = 1000L
+                }
+
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    Timber.tag(loggerTag.value).d("Received message from ntfy: $text")
+                    handleMessageText(text)
+                }
+
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    Timber.tag(loggerTag.value).d("ntfy WebSocket closing: $code / $reason")
+                    webSocket.close(code, reason)
+                }
+
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Timber.tag(loggerTag.value).i("ntfy WebSocket closed: $code / $reason")
+                    _connectionStatus.value = NtfyConnectionStatus.DISCONNECTED
+                    this@DefaultNtfySubscriber.webSocket = null
+                    scheduleReconnect()
+                }
+
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Timber.tag(loggerTag.value).e(t, "ntfy WebSocket failure: ${response?.message}")
+                    _connectionStatus.value = NtfyConnectionStatus.DISCONNECTED
+                    this@DefaultNtfySubscriber.webSocket = null
+                    scheduleReconnect()
+                }
+            })
+        } catch (t: Throwable) {
+            Timber.tag(loggerTag.value).e(t, "Failed to initiate WebSocket connection to $wsUrl")
+            _connectionStatus.value = NtfyConnectionStatus.DISCONNECTED
+            this@DefaultNtfySubscriber.webSocket = null
+            scheduleReconnect()
         }
-
-        webSocket = wsOkHttpClient.newWebSocket(requestBuilder.build(), object : WebSocketListener() {
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                Timber.tag(loggerTag.value).i("ntfy WebSocket connected!")
-                _connectionStatus.value = NtfyConnectionStatus.CONNECTED
-                reconnectDelayMs = 1000L
-            }
-
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                Timber.tag(loggerTag.value).d("Received message from ntfy: $text")
-                handleMessageText(text)
-            }
-
-            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                Timber.tag(loggerTag.value).d("ntfy WebSocket closing: $code / $reason")
-                webSocket.close(code, reason)
-            }
-
-            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                Timber.tag(loggerTag.value).i("ntfy WebSocket closed: $code / $reason")
-                _connectionStatus.value = NtfyConnectionStatus.DISCONNECTED
-                scheduleReconnect()
-            }
-
-            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Timber.tag(loggerTag.value).e(t, "ntfy WebSocket failure: ${response?.message}")
-                _connectionStatus.value = NtfyConnectionStatus.DISCONNECTED
-                scheduleReconnect()
-            }
-        })
     }
 
     private fun handleMessageText(text: String) {

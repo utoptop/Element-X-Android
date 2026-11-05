@@ -53,8 +53,11 @@ class NtfyBootReceiver : BroadcastReceiver() {
                         val prefs = context.getSharedPreferences(context.packageName + "_preferences", Context.MODE_PRIVATE)
                         val hasTopics = prefs.all.keys.any { it.startsWith("ntfy_topic_") }
                         if (hasTopics) {
-                            Timber.i("Restoring NtfyKeepAliveService on action (fallback): $action")
-                            NtfyKeepAliveService.start(context)
+                            tryOrNull {
+                                Timber.i("Restoring NtfySubscriber on action (fallback): $action")
+                                val bindings = context.bindings<NtfyBindings>()
+                                bindings.ntfySubscriber().restart()
+                            }
                         }
                     }
                 } catch (e: Throwable) {

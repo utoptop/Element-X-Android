@@ -32,6 +32,8 @@ import timber.log.Timber
  */
 class NtfyKeepAliveService : Service() {
 
+    private var isOnForeground = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -41,7 +43,11 @@ class NtfyKeepAliveService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startInForeground()
+        if (!isOnForeground) {
+            Timber.w("NtfyKeepAliveService is not running in foreground, stopping it to avoid crash")
+            stopSelf()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
@@ -116,12 +122,18 @@ class NtfyKeepAliveService : Service() {
             0
         }
 
-        try {
+        runCatchingExceptions {
             ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, serviceType)
-            Timber.d("NtfyKeepAliveService started in foreground")
-        } catch (throwable: Throwable) {
-            Timber.e(throwable, "Failed to start NtfyKeepAliveService in foreground")
         }
+            .onSuccess {
+                isOnForeground = true
+                Timber.d("NtfyKeepAliveService started in foreground")
+            }
+            .onFailure {
+                isOnForeground = false
+                Timber.e(it, "Failed to start NtfyKeepAliveService in foreground, stopping self to avoid crash")
+                stopSelf()
+            }
     }
 
     companion object {
