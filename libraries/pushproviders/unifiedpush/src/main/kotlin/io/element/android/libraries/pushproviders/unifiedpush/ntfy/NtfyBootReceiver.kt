@@ -12,6 +12,9 @@ import android.content.Context
 import android.content.Intent
 import io.element.android.libraries.architecture.bindings
 import io.element.android.libraries.core.data.tryOrNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -30,28 +33,34 @@ class NtfyBootReceiver : BroadcastReceiver() {
             action == "android.intent.action.REBOOT" ||
             action == ACTION_RESTART_NTFY
         ) {
-            // Restore via Metro bindings
-            val restored = tryOrNull {
-                val bindings = context.bindings<NtfyBindings>()
-                val store = bindings.ntfyStore()
-                val topics = store.getAllTopics()
-                if (topics.isNotEmpty()) {
-                    Timber.i("Restoring NtfyKeepAliveService and NtfySubscriber on action: $action")
-                    NtfyKeepAliveService.start(context)
-                    bindings.ntfySubscriber().restart()
-                    true
-                } else {
-                    false
-                }
-            } ?: false
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val restored = tryOrNull {
+                        val bindings = context.bindings<NtfyBindings>()
+                        val store = bindings.ntfyStore()
+                        val topics = store.getAllTopics()
+                        if (topics.isNotEmpty()) {
+                            Timber.i("Restoring NtfySubscriber on action: $action")
+                            bindings.ntfySubscriber().restart()
+                            true
+                        } else {
+                            false
+                        }
+                    } ?: false
 
-            if (!restored) {
-                // Fallback check directly via SharedPreferences
-                val prefs = context.getSharedPreferences(context.packageName + "_preferences", Context.MODE_PRIVATE)
-                val hasTopics = prefs.all.keys.any { it.startsWith("ntfy_topic_") }
-                if (hasTopics) {
-                    Timber.i("Restoring NtfyKeepAliveService on action (fallback): $action")
-                    NtfyKeepAliveService.start(context)
+                    if (!restored) {
+                        val prefs = context.getSharedPreferences(context.packageName + "_preferences", Context.MODE_PRIVATE)
+                        val hasTopics = prefs.all.keys.any { it.startsWith("ntfy_topic_") }
+                        if (hasTopics) {
+                            Timber.i("Restoring NtfyKeepAliveService on action (fallback): $action")
+                            NtfyKeepAliveService.start(context)
+                        }
+                    }
+                } catch (e: Throwable) {
+                    Timber.e(e, "Error restoring ntfy on action: $action")
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

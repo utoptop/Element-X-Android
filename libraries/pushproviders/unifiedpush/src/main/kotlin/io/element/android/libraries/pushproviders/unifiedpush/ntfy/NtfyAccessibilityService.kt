@@ -15,6 +15,9 @@ import android.text.TextUtils
 import android.view.accessibility.AccessibilityEvent
 import io.element.android.libraries.architecture.bindings
 import io.element.android.libraries.core.data.tryOrNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
@@ -27,10 +30,14 @@ class NtfyAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         Timber.i("NtfyAccessibilityService connected: OS-level keep-alive active")
-        NtfyKeepAliveService.start(this)
-        tryOrNull {
-            val bindings = bindings<NtfyBindings>()
-            bindings.ntfySubscriber().restart()
+        CoroutineScope(Dispatchers.IO).launch {
+            tryOrNull {
+                val bindings = bindings<NtfyBindings>()
+                val topics = bindings.ntfyStore().getAllTopics()
+                if (topics.isNotEmpty()) {
+                    bindings.ntfySubscriber().restart()
+                }
+            }
         }
     }
 

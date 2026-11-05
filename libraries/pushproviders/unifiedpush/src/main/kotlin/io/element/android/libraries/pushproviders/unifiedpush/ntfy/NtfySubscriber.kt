@@ -89,12 +89,14 @@ class DefaultNtfySubscriber(
     }
 
     init {
-        // Restore existing topics from store on startup
-        val storedTopics = ntfyStore.getAllTopics()
-        if (storedTopics.isNotEmpty()) {
-            activeTopics.putAll(storedTopics)
-            Timber.tag(loggerTag.value).d("Restored ${storedTopics.size} ntfy topics on init")
-            connect()
+        // Restore existing topics and connect asynchronously off the main thread
+        coroutineScope.launch(dispatchers.io) {
+            val storedTopics = ntfyStore.getAllTopics()
+            if (storedTopics.isNotEmpty()) {
+                activeTopics.putAll(storedTopics)
+                Timber.tag(loggerTag.value).d("Restored ${storedTopics.size} ntfy topics on init")
+                connect()
+            }
         }
     }
 
@@ -102,29 +104,35 @@ class DefaultNtfySubscriber(
         Timber.tag(loggerTag.value).d("Subscribing to topic: $topic for session: ${sessionId.value}")
         val previous = activeTopics.put(topic, sessionId)
         if (previous == null || webSocket == null) {
-            reconnect()
+            coroutineScope.launch(dispatchers.io) {
+                reconnect()
+            }
         }
     }
 
     override fun unsubscribe(topic: String) {
         Timber.tag(loggerTag.value).d("Unsubscribing from topic: $topic")
         activeTopics.remove(topic)
-        if (activeTopics.isEmpty()) {
-            disconnect()
-        } else {
-            reconnect()
+        coroutineScope.launch(dispatchers.io) {
+            if (activeTopics.isEmpty()) {
+                disconnect()
+            } else {
+                reconnect()
+            }
         }
     }
 
     override fun restart() {
         Timber.tag(loggerTag.value).d("Restarting ntfy connection with current settings")
-        if (activeTopics.isEmpty()) {
-            val storedTopics = ntfyStore.getAllTopics()
-            if (storedTopics.isNotEmpty()) {
-                activeTopics.putAll(storedTopics)
+        coroutineScope.launch(dispatchers.io) {
+            if (activeTopics.isEmpty()) {
+                val storedTopics = ntfyStore.getAllTopics()
+                if (storedTopics.isNotEmpty()) {
+                    activeTopics.putAll(storedTopics)
+                }
             }
+            reconnect()
         }
-        reconnect()
     }
 
     private fun disconnect() {
@@ -148,6 +156,10 @@ class DefaultNtfySubscriber(
 
     private fun connect() {
         if (activeTopics.isEmpty()) return
+        if (webSocket != null) {
+            Timber.tag(loggerTag.value).d("WebSocket already active, skipping duplicate connect")
+            return
+        }
         NtfyKeepAliveService.start(context)
 
         val serverUrl = ntfyStore.getServerUrl().trim().trimEnd('/')
