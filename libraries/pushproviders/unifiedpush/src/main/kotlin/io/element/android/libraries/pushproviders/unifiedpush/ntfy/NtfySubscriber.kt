@@ -86,8 +86,6 @@ class DefaultNtfySubscriber(
     private var connectedServerUrl: String? = null
     private var connectedUsername: String? = null
     private var connectedPassword: String? = null
-    private var lastReceivedMessageId: String? = null
-    private val recentMessageIds = ConcurrentHashMap.newKeySet<String>()
 
     // Optimized keep-alive: 90s ping interval allows the mobile cellular/Wi-Fi radio
     // to drop into deep low-power sleep (RRC_IDLE) for ~85% of time, while ntfy server keepalive frames (every 45-60s)
@@ -103,11 +101,13 @@ class DefaultNtfySubscriber(
         runCatchingExceptions {
             ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
-                    if (activeTopics.isNotEmpty()) {
-                        restart()
-                        if (ntfyStore.isKeepAliveEnabled()) {
-                            NtfyKeepAliveService.start(context)
+                    if (activeTopics.isNotEmpty() && _connectionStatus.value == NtfyConnectionStatus.DISCONNECTED) {
+                        coroutineScope.launch(dispatchers.io) {
+                            connect()
                         }
+                    }
+                    if (ntfyStore.isKeepAliveEnabled() && activeTopics.isNotEmpty()) {
+                        NtfyKeepAliveService.start(context)
                     }
                 }
             })
@@ -129,13 +129,19 @@ class DefaultNtfySubscriber(
         val currentServer = ntfyStore.getServerUrl().trim().trimEnd('/')
         val currentUsername = ntfyStore.getUsername()
         val currentPassword = ntfyStore.getPassword()
-        val serverConfigChanged = connectedServerUrl != currentServer ||
+        val serverConfigChanged = connectedServerUrl != null && (
+            connectedServerUrl != currentServer ||
             connectedUsername != currentUsername ||
             connectedPassword != currentPassword
+        )
         val previous = activeTopics.put(topic, sessionId)
-        if (previous == null || webSocket == null || serverConfigChanged) {
+        if (previous == null || webSocket == null || serverConfigChanged || _connectionStatus.value == NtfyConnectionStatus.DISCONNECTED) {
             coroutineScope.launch(dispatchers.io) {
-                reconnect()
+                if (serverConfigChanged) {
+                    reconnect()
+                } else if (webSocket == null || _connectionStatus.value == NtfyConnectionStatus.DISCONNECTED) {
+                    connect()
+                }
             }
         }
     }
@@ -189,8 +195,14 @@ class DefaultNtfySubscriber(
     }
 
     private fun connect() {
+        if (activeTopics.isEmpty()) {
+            val storedTopics = ntfyStore.getAllTopics()
+            if (storedTopics.isNotEmpty()) {
+                activeTopics.putAll(storedTopics)
+            }
+        }
         if (activeTopics.isEmpty()) return
-        if (webSocket != null) {
+        if (webSocket != null && (_connectionStatus.value == NtfyConnectionStatus.CONNECTED || _connectionStatus.value == NtfyConnectionStatus.CONNECTING)) {
             Timber.tag(loggerTag.value).d("WebSocket already active, skipping duplicate connect")
             return
         }
@@ -203,15 +215,10 @@ class DefaultNtfySubscriber(
         val topics = activeTopics.keys.joinToString(",")
         if (topics.isBlank()) return
 
-        val baseUrl = when {
+        val wsUrl = when {
             serverUrl.startsWith("https://", ignoreCase = true) -> "wss://${serverUrl.substring(8)}/$topics/ws"
             serverUrl.startsWith("http://", ignoreCase = true) -> "ws://${serverUrl.substring(7)}/$topics/ws"
             else -> "wss://$serverUrl/$topics/ws"
-        }
-        val wsUrl = if (!lastReceivedMessageId.isNullOrBlank()) {
-            "$baseUrl?since=$lastReceivedMessageId"
-        } else {
-            "$baseUrl?since=12h"
         }
 
         Timber.tag(loggerTag.value).i("Connecting to ntfy WebSocket: $wsUrl")
@@ -283,19 +290,6 @@ class DefaultNtfySubscriber(
                 Timber.tag(loggerTag.value).d("ntfy ${messageResponse.event} received")
             }
             "message" -> {
-                val msgId = messageResponse.id
-                if (!msgId.isNullOrBlank()) {
-                    lastReceivedMessageId = msgId
-                    if (!recentMessageIds.add(msgId)) {
-                        Timber.tag(loggerTag.value).d("Ignoring duplicate ntfy message: $msgId")
-                        return
-                    }
-                    if (recentMessageIds.size > 200) {
-                        recentMessageIds.clear()
-                        recentMessageIds.add(msgId)
-                    }
-                }
-
                 val rawMessage = messageResponse.message ?: return
                 val topic = messageResponse.topic ?: return
                 val sessionId = activeTopics[topic] ?: return

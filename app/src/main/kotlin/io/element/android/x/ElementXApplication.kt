@@ -22,7 +22,6 @@ import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.di.DependencyInjectionGraphOwner
 import io.element.android.libraries.matrix.api.SdkMetadata
 import io.element.android.libraries.pushproviders.unifiedpush.ntfy.NtfyBindings
-import io.element.android.libraries.pushproviders.unifiedpush.ntfy.NtfyKeepAliveService
 import io.element.android.libraries.workmanager.api.di.MetroWorkerFactory
 import io.element.android.x.call.ElementCallActivityHostDelegate
 import io.element.android.x.di.AppBindings
@@ -71,11 +70,12 @@ class ElementXApplication private constructor(
         runCatchingExceptions {
             val ntfyBindings = bindings<NtfyBindings>()
             val store = ntfyBindings.ntfyStore()
-            if (store.getAllTopics().isNotEmpty()) {
-                Timber.i("Eagerly starting NtfySubscriber on Application.onCreate")
-                ntfyBindings.ntfySubscriber().restart()
-                if (store.isKeepAliveEnabled()) {
-                    NtfyKeepAliveService.start(this)
+            val topics = store.getAllTopics()
+            if (topics.isNotEmpty()) {
+                Timber.i("Eagerly restoring ${topics.size} ntfy topic(s) on Application.onCreate")
+                val subscriber = ntfyBindings.ntfySubscriber()
+                for ((topic, sessionId) in topics) {
+                    subscriber.subscribe(topic, sessionId)
                 }
             }
         }

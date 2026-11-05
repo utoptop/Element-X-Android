@@ -58,7 +58,11 @@ class NtfyPushProvider(
 
         if (oldEndpoint != null && oldEndpoint != endpointUrl) {
             Timber.tag(loggerTag.value).i("Push endpoint changed from $oldEndpoint to $endpointUrl, unregistering old pusher")
-            pusherSubscriber.unregisterPusher(matrixClient, oldEndpoint, oldGateway)
+            try {
+                pusherSubscriber.unregisterPusher(matrixClient, oldEndpoint, oldGateway)
+            } catch (e: Exception) {
+                Timber.tag(loggerTag.value).w(e, "Failed to unregister old pusher")
+            }
         }
 
         ntfyStore.setEndpoint(sessionId, endpointUrl)
@@ -120,6 +124,10 @@ class NtfyPushProvider(
     override suspend fun getPushConfig(sessionId: SessionId): Config? {
         val endpoint = ntfyStore.getEndpoint(sessionId) ?: return null
         val gateway = ntfyStore.getGateway(sessionId) ?: defaultPushGatewayHttpUrlProvider.provide()
+        val topic = ntfyStore.getTopic(sessionId)
+        if (topic != null) {
+            ntfySubscriber.subscribe(topic, sessionId)
+        }
         return Config(
             url = gateway,
             pushKey = endpoint,
