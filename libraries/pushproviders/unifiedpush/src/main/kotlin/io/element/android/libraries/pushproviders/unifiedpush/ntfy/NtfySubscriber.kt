@@ -11,7 +11,6 @@ import android.content.Context
 import android.os.PowerManager
 import android.util.Base64
 import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dev.zacsweers.metro.AppScope
@@ -207,10 +206,6 @@ class DefaultNtfySubscriber(
             return
         }
 
-        if (ntfyStore.isKeepAliveEnabled()) {
-            tryStartKeepAliveService()
-        }
-
         val serverUrl = ntfyStore.getServerUrl().trim().trimEnd('/')
         val topics = activeTopics.keys.joinToString(",")
         if (topics.isBlank()) return
@@ -340,17 +335,6 @@ class DefaultNtfySubscriber(
             delay(reconnectDelayMs)
             reconnectDelayMs = min(reconnectDelayMs * 2, 30_000L)
             connect()
-        }
-    }
-
-    private fun tryStartKeepAliveService() {
-        runCatchingExceptions {
-            val isForeground = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-            if (isForeground) {
-                NtfyKeepAliveService.start(context)
-            }
-        }.onFailure {
-            Timber.tag(loggerTag.value).d("Cannot start keep alive service: ${it.message}")
         }
     }
 }

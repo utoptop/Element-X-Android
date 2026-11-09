@@ -31,7 +31,9 @@ import io.element.android.x.info.logApplicationInfo
 import io.element.android.x.initializer.CacheCleanerInitializer
 import io.element.android.x.initializer.CrashInitializer
 import io.element.android.x.initializer.PlatformInitializer
-import timber.log.Timber
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 // The private constructor is there so the native call screen's host can be a delegate: Android instantiates
 // the Application through the public no-arg one.
@@ -68,14 +70,10 @@ class ElementXApplication private constructor(
         logApplicationInfo(this, sdkMetadata.sdkGitSha)
 
         runCatchingExceptions {
-            val ntfyBindings = bindings<NtfyBindings>()
-            val store = ntfyBindings.ntfyStore()
-            val topics = store.getAllTopics()
-            if (topics.isNotEmpty()) {
-                Timber.i("Eagerly restoring ${topics.size} ntfy topic(s) on Application.onCreate")
-                val subscriber = ntfyBindings.ntfySubscriber()
-                for ((topic, sessionId) in topics) {
-                    subscriber.subscribe(topic, sessionId)
+            CoroutineScope(Dispatchers.IO).launch {
+                runCatchingExceptions {
+                    val ntfyBindings = bindings<NtfyBindings>()
+                    ntfyBindings.ntfySubscriber()
                 }
             }
         }

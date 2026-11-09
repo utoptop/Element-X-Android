@@ -7,8 +7,6 @@
 
 package io.element.android.libraries.pushproviders.unifiedpush.ntfy
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -20,7 +18,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import io.element.android.libraries.architecture.bindings
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.designsystem.utils.CommonDrawables
 import timber.log.Timber
@@ -49,54 +46,12 @@ class NtfyKeepAliveService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        runCatchingExceptions {
-            val bindings = bindings<NtfyBindings>()
-            bindings.ntfySubscriber().restart()
-        }
         return START_STICKY
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        Timber.i("Task removed from Recents, scheduling restart via AlarmManager")
-        try {
-            val restartIntent = Intent(applicationContext, NtfyBootReceiver::class.java).apply {
-                action = NtfyBootReceiver.ACTION_RESTART_NTFY
-                setPackage(packageName)
-            }
-            val pendingIntent = PendingIntent.getBroadcast(
-                applicationContext,
-                101,
-                restartIntent,
-                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
-            )
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
-            alarmManager?.let { am ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (am.canScheduleExactAlarms()) {
-                        am.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            System.currentTimeMillis() + 1000,
-                            pendingIntent
-                        )
-                    } else {
-                        am.setAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            System.currentTimeMillis() + 1000,
-                            pendingIntent
-                        )
-                    }
-                } else {
-                    am.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        System.currentTimeMillis() + 1000,
-                        pendingIntent
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to schedule restart on task removed")
-        }
+        Timber.i("Task removed from Recents")
     }
 
     private fun ensureNotificationChannelExists() {

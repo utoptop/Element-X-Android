@@ -30,8 +30,7 @@ class NtfyBootReceiver : BroadcastReceiver() {
             action == Intent.ACTION_MY_PACKAGE_REPLACED ||
             action == "android.intent.action.QUICKBOOT_POWERON" ||
             action == "com.htc.intent.action.QUICKBOOT_POWERON" ||
-            action == "android.intent.action.REBOOT" ||
-            action == ACTION_RESTART_NTFY
+            action == "android.intent.action.REBOOT"
         ) {
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
@@ -43,7 +42,7 @@ class NtfyBootReceiver : BroadcastReceiver() {
                         if (topics.isNotEmpty()) {
                             Timber.i("Restoring NtfySubscriber on action: $action")
                             bindings.ntfySubscriber().restart()
-                            if (store.isKeepAliveEnabled()) {
+                            if (store.isKeepAliveEnabled() && action == Intent.ACTION_BOOT_COMPLETED) {
                                 NtfyKeepAliveService.start(context)
                             }
                             true
@@ -70,9 +69,5 @@ class NtfyBootReceiver : BroadcastReceiver() {
                 }
             }
         }
-    }
-
-    companion object {
-        const val ACTION_RESTART_NTFY = "io.element.android.ntfy.action.RESTART"
     }
 }
