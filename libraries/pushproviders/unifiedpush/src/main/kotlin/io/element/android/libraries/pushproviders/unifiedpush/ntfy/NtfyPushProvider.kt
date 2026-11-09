@@ -47,8 +47,8 @@ class NtfyPushProvider(
         val oldGateway = ntfyStore.getGateway(sessionId) ?: defaultPushGatewayHttpUrlProvider.provide()
 
         var topic = ntfyStore.getTopic(sessionId)
-        if (topic.isNullOrEmpty()) {
-            topic = "up" + UUID.randomUUID().toString().replace("-", "").take(16)
+        if (topic.isNullOrEmpty() || topic.length != 14) {
+            topic = "up" + UUID.randomUUID().toString().replace("-", "").take(12)
             ntfyStore.setTopic(sessionId, topic)
         }
 
@@ -137,6 +137,12 @@ class NtfyPushProvider(
     override fun canRotateToken(): Boolean = true
 
     override suspend fun rotateToken(): Result<Unit> {
+        val topics = ntfyStore.getAllTopics()
+        for ((_, sessionId) in topics) {
+            val newTopic = "up" + UUID.randomUUID().toString().replace("-", "").take(12)
+            ntfyStore.setTopic(sessionId, newTopic)
+            ntfySubscriber.subscribe(newTopic, sessionId)
+        }
         ntfySubscriber.restart()
         return Result.success(Unit)
     }

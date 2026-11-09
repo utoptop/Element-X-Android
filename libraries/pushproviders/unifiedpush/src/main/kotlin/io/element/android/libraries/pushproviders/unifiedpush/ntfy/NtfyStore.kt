@@ -74,7 +74,13 @@ class SharedPreferencesNtfyStore(
     }
 
     override fun getTopic(sessionId: SessionId): String? {
-        return sharedPreferences.getString(PREFS_TOPIC_PREFIX + sessionId.value, null)
+        val topic = sharedPreferences.getString(PREFS_TOPIC_PREFIX + sessionId.value, null)
+        if (topic != null && topic.length != 14) {
+            val newTopic = "up" + java.util.UUID.randomUUID().toString().replace("-", "").take(12)
+            setTopic(sessionId, newTopic)
+            return newTopic
+        }
+        return topic
     }
 
     override fun setTopic(sessionId: SessionId, topic: String?) {
@@ -132,7 +138,15 @@ class SharedPreferencesNtfyStore(
         for ((key, value) in all) {
             if (key.startsWith(PREFS_TOPIC_PREFIX) && value is String && value.isNotBlank()) {
                 val sessionRaw = key.removePrefix(PREFS_TOPIC_PREFIX)
-                topics[value] = SessionId(sessionRaw)
+                val sessionId = SessionId(sessionRaw)
+                val validTopic = if (value.length == 14) {
+                    value
+                } else {
+                    val healed = "up" + java.util.UUID.randomUUID().toString().replace("-", "").take(12)
+                    setTopic(sessionId, healed)
+                    healed
+                }
+                topics[validTopic] = sessionId
             }
         }
         return topics
